@@ -1,0 +1,9 @@
+{
+  "name": "the-yearly-games",
+  "private": true,
+  "type": "module",
+  "description": "A yearly Hunger Games-style simulator for friends.",
+  "scripts": {
+    "test": "node test/simulate.test.js"
+  }
+}
