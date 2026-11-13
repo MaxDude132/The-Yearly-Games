@@ -10,6 +10,14 @@ import {
 
 const MAX_ALLIANCE_SIZE = 4;
 
+// Balance: no option should be the "safe" one. These are tuned with test/simulate.test.js
+// so that a player who always picks the same option wins as often as anyone else.
+const SURPRISE_ATTACK_EDGE = 0.35;  // attacking someone who has not noticed you
+const SPOTTED_WHILE_SLIPPING = 0.2; // chance the other tribute notices you sneaking off
+const CHASE_EDGE = 0.15;            // the chaser's advantage
+const STEAL_SUCCESS = 0.55;         // stealing from a sleeper
+const REFUSAL_STARTS_FIGHT = 0.25;  // a refused alliance can turn ugly
+
 /**
  * tribute runs into someone who is not busy and not an ally.
  * Tributes with a grudge are more likely to find the person they hate.
@@ -46,7 +54,7 @@ async function findSleeper(tribute, sleeper) {
       fight(sleeper, tribute, 0.15);
     }
   } else if (choice === 1 && sleeper.items.length) {
-    if (chance(0.7)) {
+    if (chance(STEAL_SUCCESS)) {
       const stolen = pickRandom(sleeper.items);
       removeItem(sleeper, stolen);
       tribute.items.push(stolen);
@@ -75,9 +83,12 @@ async function faceToFace(tribute, other) {
 
   if (choice === 0) {
     if (hates) addToStory('bad', ENCOUNTERS.hunted, values);
-    fight(tribute, other, 0.1);
+    fight(tribute, other, SURPRISE_ATTACK_EDGE);
   } else if (choice === 1) {
     await offerAlliance(tribute, other);
+  } else if (chance(SPOTTED_WHILE_SLIPPING)) {
+    addToStory('bad', ENCOUNTERS.spottedSlipping, values);
+    fight(other, tribute, CHASE_EDGE);
   } else {
     addToStory('', ENCOUNTERS.slipsAway, values);
   }
@@ -112,6 +123,10 @@ async function offerAlliance(tribute, other) {
   } else {
     addGrudge(tribute, other);
     addToStory('', ENCOUNTERS.allianceRefused, values);
+    if (chance(REFUSAL_STARTS_FIGHT)) {
+      addToStory('bad', ENCOUNTERS.refusalTurnsUgly, values);
+      fight(tribute, other, 0.1);
+    }
   }
 }
 

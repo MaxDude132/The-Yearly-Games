@@ -86,10 +86,10 @@ export async function strangeBerries(tribute) {
   if (choice === 1) return addToStory('', BERRIES.leftAlone, { a: tribute });
 
   const roll = Math.random();
-  if (roll < 0.55) {
+  if (roll < 0.65) {
     tribute.wounded = false;
     addToStory('item', BERRIES.delicious, { a: tribute });
-  } else if (roll < 0.8 || !moreThanOneAlive()) {
+  } else if (roll < 0.88 || !moreThanOneAlive()) {
     tribute.wounded = true;
     addToStory('hurt', BERRIES.sick, { a: tribute });
   } else {

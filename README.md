@@ -80,7 +80,7 @@ Then open http://localhost:8000.
 npm test
 ```
 
-This plays 5000 games with random answers and checks that every game ends with exactly one winner, no story line is missing text, and every tribute wins about equally often.
+This plays 5000 games with random answers and checks that every game ends with exactly one winner, no story line is missing text, and every tribute wins about equally often. It also checks that players in the room don't win more often than absent ones, whatever options they tend to pick: choices change the story, not the odds.
 
 ### Publish an update
 

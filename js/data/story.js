@@ -118,8 +118,10 @@ export const HAZARDS = {
 // Two tributes cross paths.
 export const ENCOUNTERS = {
   slipsAway: ['{a} spots {b} and slips away unseen.', "{a} aperçoit {b} et s'éclipse sans bruit."],
+  spottedSlipping: ['{b} notices {a} sneaking off and gives chase.', "{b} remarque {a} qui tente de s'éclipser et se lance à sa poursuite."],
   allianceFormed: ['{a} and {b} shake hands. An alliance is born.', '{a} et {b} se serrent la main. Une alliance est née.'],
   allianceRefused: ['{b} refuses the alliance {a} offers. {a} will remember.', "{b} refuse l'alliance que propose {a}. {a} s'en souviendra."],
+  refusalTurnsUgly: ['{a} takes the refusal badly and attacks.', '{a} prend très mal le refus et attaque.'],
   offerAnsweredWithAttack: ['{a} offers {b} an alliance. {b} attacks instead.', '{a} propose une alliance à {b}, qui attaque aussitôt.'],
   hunted: ['{a} has been hunting {b} for this.', '{a} traquait {b} pour ce moment.'],
   killsSleeper: ['{a} finds {b} asleep and makes sure it stays that way.', "{a} trouve {b} en plein sommeil et s'assure que ça dure."],

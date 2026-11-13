@@ -15,6 +15,12 @@ const MAX_CHOICES_PER_ROUND = 2; // keeps the game moving: about 15 to 20 pop-up
 
 // ---------- the Bloodbath ----------
 
+// Balance (tuned with test/simulate.test.js): rushing, grabbing a pack and fleeing
+// should all lead to victory about equally often.
+const RUSHER_FINDS_WEAPON = 0.9;
+const RUSHER_FIGHT_LETHALITY = 0.45;
+const PACK_GRABBER_CAUGHT = 0.4;
+
 /** District partners (1 & 2, 3 & 4...) start as friends (allied), rivals (grudges) or strangers. */
 function setDistrictBonds() {
   for (let i = 0; i + 1 < game.tributes.length; i += 2) {
@@ -40,7 +46,7 @@ async function bloodbath() {
 
     if (choice === 0) {
       rushers.push(tribute);
-      if (chance(0.75)) {
+      if (chance(RUSHER_FINDS_WEAPON)) {
         const weapon = randomItem(KIND.WEAPON);
         tribute.items.push(weapon);
         addToStory('item', BLOODBATH.grabsWeapon, { a: tribute, item: weapon.name });
@@ -64,13 +70,13 @@ async function bloodbath() {
   // Rushers fight each other in pairs (district friends spare each other).
   for (let i = 0; i + 1 < rushers.length; i += 2) {
     const [a, b] = [rushers[i], rushers[i + 1]];
-    if (!sameAlliance(a, b)) fight(a, b, 0, 0.85);
+    if (!sameAlliance(a, b)) fight(a, b, 0, RUSHER_FIGHT_LETHALITY);
   }
 
   // Some pack grabbers get caught by a surviving rusher.
   packGrabbers.forEach((tribute) => {
     const hunters = rushers.filter((rusher) => rusher.alive && !sameAlliance(rusher, tribute));
-    if (tribute.alive && hunters.length && chance(0.15)) fight(pickRandom(hunters), tribute, 0.2, 0.7);
+    if (tribute.alive && hunters.length && chance(PACK_GRABBER_CAUGHT)) fight(pickRandom(hunters), tribute, 0.2, 0.7);
   });
 }
 

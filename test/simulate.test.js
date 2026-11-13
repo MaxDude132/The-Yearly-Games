@@ -51,3 +51,31 @@ console.log({
 // With 5000 games and 24 tributes, each should win about 208 times.
 assert.ok(fewest > 120 && most < 300, 'some tributes win much more than others');
 console.log('All checks passed.');
+
+// ---------- being in the room must not make you win ----------
+// Half the tributes are "present" and always answer the same way (always the first option,
+// always the last...). Whatever the habit, present players should win about half the games.
+const HABITS = {
+  random: (options) => randomInt(options.length),
+  alwaysFirstOption: () => 0,
+  alwaysMiddleOption: (options) => Math.min(1, options.length - 1),
+  alwaysLastOption: (options) => options.length - 1,
+};
+const FAIRNESS_GAMES = 4000;
+
+for (const [habit, choose] of Object.entries(HABITS)) {
+  let presentWins = 0;
+
+  for (let g = 0; g < FAIRNESS_GAMES; g++) {
+    // Swap which half is present every game, so list position cancels out.
+    const roster = Array.from({ length: TRIBUTES }, (_, i) => ({ name: `T${i}`, present: (i % 2 === 0) !== (g % 2 === 1) }));
+    startNewGame(roster, async (tribute, question, options) => choose(options));
+    while (!game.winner) await playNextRound();
+    if (game.winner.present) presentWins++;
+  }
+
+  const share = (100 * presentWins) / FAIRNESS_GAMES;
+  console.log(`${habit}: present players win ${share.toFixed(1)}% of games (fair is 50%)`);
+  assert.ok(share > 46 && share < 54, `players in the room who play "${habit}" win too often or too rarely`);
+}
+console.log('Fairness checks passed.');
