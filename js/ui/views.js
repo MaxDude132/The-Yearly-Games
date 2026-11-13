@@ -22,6 +22,13 @@ function avatar(tribute, fallbackText) {
 
 const isNightRound = (game) => game.round > 1 && game.round % 2 === 1;
 
+/** Shown only when a new version is out. Disabled mid-round, since the game saves between rounds. */
+function updateButton(state, t) {
+  if (!state.updateAvailable) return '';
+  const busy = state.roundRunning || state.decision;
+  return `<button class="update-button" data-action="update" ${busy ? 'disabled' : ''}>${t('update')}</button>`;
+}
+
 // ---------- setup screen ----------
 
 function installButton(state, t) {
@@ -60,6 +67,7 @@ export function setupView(state) {
     <header class="top-bar">
       <h1>${t('title')}</h1>
       <div class="row">
+        ${updateButton(state, t)}
         ${installButton(state, t)}
         <button data-action="toggleLanguage">${t('language')}</button>
       </div>
@@ -161,7 +169,10 @@ export function gameView(state, game) {
         <h1>${game.round ? storyHtml(game.title, state.language) : t('title')}</h1>
         <span class="alive-count">${aliveCount} / ${game.tributes.length} ${t('aliveCount')}</span>
       </div>
-      <button data-action="toggleLanguage">${t('language')}</button>
+      <div class="row">
+        ${updateButton(state, t)}
+        <button data-action="toggleLanguage">${t('language')}</button>
+      </div>
     </header>
     <div class="stage ${state.showBoard ? 'show-board' : ''}">
       <section class="story" id="story">${storyFeed(state, game)}</section>

@@ -51,6 +51,8 @@ input[type=checkbox] { accent-color: var(--ember); width: 1.1rem; height: 1.1rem
 .top-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .7rem 1rem; border-bottom: 1px solid var(--line); }
 .top-bar.night { border-bottom-color: var(--moon); }
 h1 { margin: 0; font: 900 clamp(1.7rem, 5vw, 2.6rem)/1 var(--display); letter-spacing: .03em; text-transform: uppercase; text-wrap: balance; }
+.update-button { border-color: var(--gold); color: var(--gold); font-weight: 600; }
+.update-button::before { content: ""; display: inline-block; width: .5rem; height: .5rem; margin-right: .45rem; border-radius: 50%; background: var(--gold); vertical-align: middle; }
 .alive-count { color: var(--moss); font-variant-numeric: tabular-nums; }
 
 /* ---------- avatars ---------- */

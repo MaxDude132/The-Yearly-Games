@@ -35,6 +35,7 @@ Plain HTML, CSS and JavaScript modules. No build step, nothing to install.
 index.html              the page
 manifest.webmanifest    app name, colours and icons (for installing)
 sw.js                   service worker: install + works offline
+version.json            bump this number when you publish an update
 css/style.css           all the styles
 icons/                  the logo (icon.svg) and its PNG sizes
 
@@ -58,6 +59,7 @@ js/
     install.js          the Install app button
     photos.js           shrinks photos so they fit in storage
     storage.js          reads and writes browser storage
+    updates.js          the Update available button (compares version.json)
 
 test/simulate.test.js   plays 5000 games and checks they always end fairly
 ```
@@ -79,6 +81,10 @@ npm test
 ```
 
 This plays 5000 games with random answers and checks that every game ends with exactly one winner, no story line is missing text, and every tribute wins about equally often.
+
+### Publish an update
+
+Push your changes and add 1 to the number in `version.json`. Anyone with the app open sees an **Update available** button within a few minutes (or as soon as they come back to the app). Tapping it reloads the new version. The game is saved between rounds, so the button waits until the current round ends.
 
 ### Change the game
 

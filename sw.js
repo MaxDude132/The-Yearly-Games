@@ -15,6 +15,7 @@ const APP_FILES = [
   'js/ui/install.js',
   'js/ui/photos.js',
   'js/ui/storage.js',
+  'js/ui/updates.js',
   'js/engine/state.js',
   'js/engine/text.js',
   'js/engine/combat.js',
@@ -40,8 +41,14 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  // "no-cache" asks GitHub if the file changed instead of trusting the browser's copy,
+  // so the Update button really loads the new version.
+  const fresh = event.request.mode === 'navigate'
+    ? fetch(event.request.url, { cache: 'no-cache' })
+    : fetch(event.request, { cache: 'no-cache' });
+
   event.respondWith(
-    fetch(event.request)
+    fresh
       .then((response) => {
         if (response.ok || response.type === 'opaque') {
           const copy = response.clone();

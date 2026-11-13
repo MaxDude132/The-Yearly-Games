@@ -36,4 +36,5 @@ export const UI_TEXT = {
   kills: ['kills', 'victimes'],
   grudgeAgainst: ['Grudge against', 'Rancune contre'],
   language: ['Français', 'English'],
+  update: ['Update available', 'Mise à jour'],
 };

@@ -5,6 +5,7 @@ import { game, restoreGame, snapshotGame, startNewGame } from '../engine/state.j
 import { promptInstall, setupInstall } from './install.js';
 import { photoToSmallSquare } from './photos.js';
 import { KEYS, load, save } from './storage.js';
+import { applyUpdate, watchForUpdates } from './updates.js';
 import { gameView, setupView } from './views.js';
 
 const DEFAULT_TRIBUTE_COUNT = 24;
@@ -23,6 +24,7 @@ const state = {
   firstNewEntry: 0,                   // story entries from here on are new (scrolled to, animated)
   confirmQuit: false,
   showIosHint: false,
+  updateAvailable: false,            // a newer version is on GitHub
 };
 
 /** The engine calls this when a player in the room must choose. Resolves when they tap an option. */
@@ -56,6 +58,10 @@ const actions = {
   toggleLanguage() {
     state.language = 1 - state.language;
     save(KEYS.language, state.language);
+  },
+
+  update() {
+    applyUpdate();
   },
 
   install() {
@@ -179,6 +185,10 @@ if (savedGame && savedGame.tributes) {
   state.firstNewEntry = game.log.length;
 }
 
+watchForUpdates(() => {
+  state.updateAvailable = true;
+  render();
+});
 setupInstall(() => {
   if (state.screen === 'setup') render();
 });
