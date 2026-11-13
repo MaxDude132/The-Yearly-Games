@@ -138,12 +138,18 @@ appElement.addEventListener('click', (event) => {
   const button = event.target.closest('[data-action]');
   if (!button || button.disabled) return;
 
+  // A short buzz on phones that support it (Android). iPhones ignore this; they get the visual press only.
+  navigator.vibrate?.(12);
+
   const action = button.dataset.action;
   if (action !== 'quit') state.confirmQuit = false;
 
   const result = actions[action](Number(button.dataset.index));
   if (!(result instanceof Promise)) render(); // async actions draw the screen when they finish
 });
+
+// iPhone Safari only shows the :active press style if the page listens for touches.
+document.addEventListener('touchstart', () => {}, { passive: true });
 
 appElement.addEventListener('input', async (event) => {
   const { field, index } = event.target.dataset;

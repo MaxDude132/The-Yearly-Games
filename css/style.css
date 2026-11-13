@@ -27,6 +27,15 @@ body { background: var(--ground); color: var(--bone); font: 400 1rem/1.45 var(--
 button, input { font: inherit; color: inherit; }
 button { cursor: pointer; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: .6rem .9rem; }
 button:disabled { opacity: .45; cursor: default; }
+
+/* Press feedback: buttons sink and light up while pressed, so every tap is felt. */
+button, .photo-picker { -webkit-tap-highlight-color: transparent; transition: transform .08s ease, filter .08s ease, background-color .08s ease, border-color .08s ease; }
+button:not(:disabled):active, .photo-picker:active { transform: scale(.95); filter: brightness(1.25); }
+button:not(:disabled):not(.big-button):active { border-color: var(--ember); background-color: #22311f; }
+.big-button:not(:disabled):active { filter: brightness(1.15); transform: scale(.97); }
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled):active, .photo-picker:active { transform: none; }
+}
 button:focus-visible, input:focus-visible, .photo-picker:focus-within { outline: 2px solid var(--gold); outline-offset: 2px; }
 input[type=checkbox] { accent-color: var(--ember); width: 1.1rem; height: 1.1rem; }
 .visually-hidden { position: absolute; opacity: 0; width: 1px; height: 1px; }
