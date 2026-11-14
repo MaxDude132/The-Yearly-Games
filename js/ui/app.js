@@ -121,6 +121,7 @@ const actions = {
     if (game.winner) {
       save(KEYS.game, null);
       state.screen = 'setup';
+      render(); // this action is async, so the click handler does not redraw for it
       return;
     }
 
