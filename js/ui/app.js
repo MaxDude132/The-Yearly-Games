@@ -140,18 +140,26 @@ const actions = {
 
 // ---------- events ----------
 
+const PRESS_TIME = 160; // milliseconds a tapped button stays pressed before its action runs
+let pressing = false;
+
 appElement.addEventListener('click', (event) => {
   const button = event.target.closest('[data-action]');
-  if (!button || button.disabled) return;
+  if (!button || button.disabled || pressing) return;
 
-  // A short buzz on phones that support it (Android). iPhones ignore this; they get the visual press only.
-  navigator.vibrate?.(12);
+  // Show the press first, then act: otherwise the screen redraws before the tap can be seen.
+  pressing = true;
+  button.classList.add('pressed');
+  navigator.vibrate?.(12); // a short buzz on Android; iPhones ignore this
 
-  const action = button.dataset.action;
-  if (action !== 'quit') state.confirmQuit = false;
+  setTimeout(() => {
+    pressing = false;
+    const action = button.dataset.action;
+    if (action !== 'quit') state.confirmQuit = false;
 
-  const result = actions[action](Number(button.dataset.index));
-  if (!(result instanceof Promise)) render(); // async actions draw the screen when they finish
+    const result = actions[action](Number(button.dataset.index));
+    if (!(result instanceof Promise)) render(); // async actions draw the screen when they finish
+  }, PRESS_TIME);
 });
 
 // iPhone Safari only shows the :active press style if the page listens for touches.

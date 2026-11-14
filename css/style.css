@@ -28,23 +28,18 @@ button, input { font: inherit; color: inherit; }
 button { cursor: pointer; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: .6rem .9rem; }
 button:disabled { opacity: .45; cursor: default; }
 
-/* Press feedback: buttons sink and light up while pressed, so every tap is felt. */
-button, .photo-picker { -webkit-tap-highlight-color: transparent; transition: transform .08s ease, filter .08s ease, background-color .08s ease, border-color .08s ease; }
-button:not(:disabled):active, .photo-picker:active { transform: scale(.95); filter: brightness(1.25); }
-button:not(:disabled):not(.big-button):active { border-color: var(--ember); background-color: #22311f; }
-.big-button:not(:disabled):active { filter: brightness(1.15); transform: scale(.97); }
-@media (prefers-reduced-motion: reduce) {
-  button:not(:disabled):active, .photo-picker:active { transform: none; }
+/* Press feedback: a pressed button sinks and darkens, like a physical button.
+   .pressed is added by app.js and held briefly, so even a very quick tap is visible. */
+button, .photo-picker { -webkit-tap-highlight-color: transparent; transition: transform .1s ease, background-color .1s ease, border-color .1s ease, box-shadow .1s ease; }
+button:not(:disabled):active, button.pressed, .photo-picker:active {
+  transform: translateY(2px) scale(.98);
+  background-color: #0c130e;
+  border-color: var(--ember);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, .6);
 }
-button:focus-visible, input:focus-visible, .photo-picker:focus-within { outline: 2px solid var(--gold); outline-offset: 2px; }
-input[type=checkbox] { accent-color: var(--ember); width: 1.1rem; height: 1.1rem; }
-.visually-hidden { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.row { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
-
-.big-button {
-  flex: 1; padding: .85rem 1.2rem;
-  background: var(--ember); border-color: var(--ember); color: #1a0d05;
-  font: 900 1.35rem/1 var(--display); letter-spacing: .04em; text-transform: uppercase;
+.big-button:not(:disabled):active, .big-button.pressed { background-color: #c2501c; border-color: #c2501c; }
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled):active, button.pressed, .photo-picker:active { transform: none; }
 }
 
 /* ---------- top bar ---------- */
@@ -129,6 +124,11 @@ h1 { margin: 0; font: 900 clamp(1.7rem, 5vw, 2.6rem)/1 var(--display); letter-sp
 /* ---------- decision pop-up ---------- */
 .overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(8, 12, 9, .88); }
 .decision { width: 100%; max-width: 30rem; max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: .8rem; padding: 1.2rem; background: var(--panel); border: 2px solid var(--ember); border-radius: 8px; }
+/* Each new pop-up slides in, so two questions in a row do not look like the same one. */
+@media (prefers-reduced-motion: no-preference) {
+  .decision { animation: decision-in .22s ease-out both; }
+  @keyframes decision-in { from { opacity: 0; transform: translateY(14px); } }
+}
 .decision small { color: var(--ember); font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; }
 .decision p { margin: 0; }
 .decision-name { display: flex; align-items: center; gap: .8rem; font: 900 clamp(2.2rem, 9vw, 3.4rem)/1 var(--display); text-transform: uppercase; overflow-wrap: anywhere; }
