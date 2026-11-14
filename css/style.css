@@ -84,6 +84,8 @@ h1 { margin: 0; font: 900 clamp(1.7rem, 5vw, 2.6rem)/1 var(--display); letter-sp
 .story, .board { overflow-y: auto; padding: 1rem; }
 .board { border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: .5rem; }
 
+/* Empty space after the story, so a short round can still scroll its heading to the top. */
+.story::after { content: ""; display: block; height: 70vh; }
 .story h2 {
   margin: 1.4rem 0 .6rem; padding-top: .9rem; border-top: 1px solid var(--line);
   font: 700 1.5rem/1 var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--gold);

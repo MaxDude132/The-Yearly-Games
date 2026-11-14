@@ -112,7 +112,7 @@ const actions = {
     if (!state.decision) return;
     const { answer } = state.decision;
     state.decision = null;
-    state.firstNewEntry = game.log.length;
+    // firstNewEntry stays at the round's heading, so the story opens at the top of the day or night.
     answer(index);
   },
 
