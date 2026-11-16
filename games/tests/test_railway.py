@@ -39,8 +39,8 @@ class RailwayConfigTests(SimpleTestCase):
         self.assertEqual(self.resources["database.postgres"]["engine"], "postgres")
         self.assertIn(self.resources["bucket.photos"]["config"]["region"], {"sjc", "iad", "ams", "sin"})
 
-    def test_web_builds_the_dockerfile_from_the_main_branch(self):
-        source = {"type": "github", "repo": "Spendrax/The-Yearly-Games", "branch": "main"}
+    def test_web_builds_the_dockerfile_from_the_deploy_branch(self):
+        source = {"type": "github", "repo": "Spendrax/The-Yearly-Games", "branch": "django-version"}
         self.assertEqual(self.web["source"], source)
         self.assertEqual(self.web["build"], {"builder": "DOCKERFILE", "dockerfilePath": "Dockerfile"})
         self.assertTrue((settings.BASE_DIR / "Dockerfile").exists())
