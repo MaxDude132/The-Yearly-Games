@@ -35,14 +35,16 @@ class RailwayConfigTests(SimpleTestCase):
 
     def test_the_project_has_the_web_service_postgres_and_the_photo_bucket(self):
         self.assertEqual(self.graph["name"], "the-yearly-games")
-        self.assertEqual(set(self.resources), {"service.web", "database.postgres", "volume.postgres-volume", "bucket.photos"})
+        names = {"service.web", "database.postgres", "volume.postgres-volume", "bucket.photos"}
+        self.assertEqual(set(self.resources), names)
         self.assertEqual(self.resources["database.postgres"]["engine"], "postgres")
         self.assertIn(self.resources["bucket.photos"]["config"]["region"], {"sjc", "iad", "ams", "sin"})
 
     def test_web_builds_the_dockerfile_from_the_main_branch(self):
         source = {"type": "github", "repo": "Spendrax/The-Yearly-Games", "branch": "main"}
         self.assertEqual(self.web["source"], source)
-        self.assertEqual(self.web["build"], {"buildEnvironment": "V3", "builder": "DOCKERFILE", "dockerfilePath": "Dockerfile"})
+        build = {"buildEnvironment": "V3", "builder": "DOCKERFILE", "dockerfilePath": "Dockerfile"}
+        self.assertEqual(self.web["build"], build)
         self.assertTrue((settings.BASE_DIR / "Dockerfile").exists())
 
     def test_web_deploys_like_production_needs(self):
