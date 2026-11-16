@@ -13,8 +13,20 @@ class Game(models.Model):
         SETUP = "setup", "Setup"  # choosing names and who is in the room
         PLAYING = "playing", "Playing"  # includes a finished game that shows its winner
 
+    class Voters(models.TextChoices):
+        """Who votes for a tribute who is not in the room when they face a big decision."""
+
+        NOBODY = "nobody", "Nobody (the arena decides)"
+        PAST_WINNERS = "past_winners", "Past winners"
+        DEAD = "dead", "The dead"
+        PAST_WINNERS_AND_DEAD = "past_winners_and_dead", "Past winners and the dead"
+        EVERYONE = "everyone", "Everyone in the room"
+
     session_key = models.CharField(max_length=40, unique=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.SETUP)
+    voters = models.CharField(max_length=30, choices=Voters.choices, default=Voters.DEAD)
+    # Fair play: nobody votes on a decision about their own tribute or their own alliance.
+    no_conflict_votes = models.BooleanField(default=True)
     round = models.PositiveIntegerField(default=0)  # 1 = Bloodbath, 2 = Day 1, 3 = Night 1...
     day = models.PositiveIntegerField(default=0)
     alliance_count = models.PositiveIntegerField(default=0)
@@ -36,6 +48,10 @@ class Tribute(models.Model):
     name = models.CharField(max_length=30, blank=True)
     photo = models.ImageField(upload_to="photos/", blank=True)
     present = models.BooleanField(default=True)  # in the room: makes their own choices
+    past_winner_year = models.PositiveSmallIntegerField(null=True, blank=True)  # won the Games that year
+    goal = models.CharField(
+        max_length=10, blank=True
+    )  # what the tribute does today: hunt, hide, scavenge, guard
     alive = models.BooleanField(default=True)
     wounded = models.BooleanField(default=False)
     alliance = models.PositiveIntegerField(default=0)  # 0 means no alliance
@@ -141,3 +157,19 @@ class Answer(models.Model):
     class Meta:
         ordering = ["position"]
         constraints = [models.UniqueConstraint(fields=["game", "position"], name="unique_answer_position")]
+
+
+class Bet(models.Model):
+    """Before a night, a player in the room guesses who dies first that night."""
+
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="bets")
+    round = models.PositiveIntegerField()  # the night round the bet is about
+    bettor = models.ForeignKey(Tribute, on_delete=models.CASCADE, related_name="bets")
+    target = models.ForeignKey(Tribute, on_delete=models.CASCADE, related_name="+")
+    points = models.PositiveSmallIntegerField(null=True, blank=True)  # None until the night is over
+
+    class Meta:
+        ordering = ["round", "bettor__position"]
+        constraints = [
+            models.UniqueConstraint(fields=["game", "round", "bettor"], name="unique_bet_per_round")
+        ]

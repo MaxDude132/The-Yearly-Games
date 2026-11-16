@@ -22,10 +22,10 @@ MAX_ALLIANCE_SIZE = 4
 # Balance: no option should be the "safe" one. These are tuned with the simulation tests
 # so that a player who always picks the same option wins as often as anyone else.
 SURPRISE_ATTACK_EDGE = 0.35  # attacking someone who has not noticed you
-SPOTTED_WHILE_SLIPPING = 0.2  # chance the other tribute notices you sneaking off
+SPOTTED_WHILE_SLIPPING = 0.15  # chance the other tribute notices you sneaking off
 CHASE_EDGE = 0.15  # the chaser's advantage
 STEAL_SUCCESS = 0.55  # stealing from a sleeper
-REFUSAL_STARTS_FIGHT = 0.25  # a refused alliance can turn ugly
+REFUSAL_STARTS_FIGHT = 0.15  # a refused alliance can turn ugly
 FEARED_SOUGHT = 0.2  # chance a tribute goes looking for a feared rival instead of a random one
 HIDDEN_SKIPPED = 0.5  # chance a sleeper who hid well is walked past at night
 COLD_HANDSHAKE = 0.4  # chance an alliance with a known betrayer falls through

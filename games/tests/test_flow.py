@@ -11,7 +11,7 @@ from django.test import Client, TestCase, override_settings
 from PIL import Image
 
 from games import services
-from games.models import Answer, Game, LogEntry, Tribute
+from games.models import Answer, Bet, Game, LogEntry, Tribute
 
 MEDIA_ROOT = tempfile.mkdtemp()
 
@@ -245,3 +245,77 @@ class FlowTests(TestCase):
         self.assertEqual(arena.round, 2)
         self.assertEqual(len(arena.log), game.log.count())
         self.assertEqual(len(arena.living()), game.tributes.filter(alive=True).count())
+
+    # ---------- votes, past winners, bets and the recap ----------
+    def test_the_setup_saves_past_winners_and_the_vote_settings(self):
+        self.client.post(
+            "/roster/",
+            setup_form(self.game, action="save", voters="everyone", **{"won-0": "2023", "won-1": "nope"}),
+        )
+        self.game.refresh_from_db()
+        self.assertEqual(self.game.voters, Game.Voters.EVERYONE)
+        self.assertFalse(self.game.no_conflict_votes)  # the box was not ticked
+        self.assertEqual(self.game.tributes.get(position=0).past_winner_year, 2023)
+        self.assertIsNone(self.game.tributes.get(position=1).past_winner_year)
+        page = self.client.get("/").content.decode()
+        self.assertIn('value="2023"', page)
+        self.assertRegex(page, r'<option value="everyone" selected>')
+        self.client.post(
+            "/roster/", setup_form(self.game, action="save", voters="hackers", no_conflict_votes="on")
+        )
+        self.game.refresh_from_db()
+        self.assertEqual(self.game.voters, Game.Voters.EVERYONE)  # an unknown value is ignored
+        self.assertTrue(self.game.no_conflict_votes)
+
+    def test_a_past_winner_is_shown_on_the_board(self):
+        self.client.post("/roster/", setup_form(self.game, action="start", **{"won-0": "2021"}))
+        self.assertIn("Victor of 2021", self.client.get("/").content.decode())
+
+    def test_absent_tributes_get_votes_from_the_dead_in_the_room(self):
+        self.client.post(
+            "/roster/",
+            setup_form(self.game, lambda position: position < 12, action="start", voters="everyone"),
+        )
+        for _ in range(400):
+            page = self.play_until_question_or_end()
+            if "New game" in page:
+                self.fail("no vote happened in a whole game")
+            if re.search(r"Vote \d+ of \d+, for", page):
+                break
+            position = re.search(r'name="position" value="(\d+)"', page).group(1)
+            self.client.post("/decision/", {"position": position, "choice": 0})
+
+    def test_bets_before_a_night_are_scored_after_it(self):
+        self.start(here=lambda position: position < 2)
+        for _ in range(400):
+            page = self.client.get("/").content.decode()
+            if "New game" in page:
+                self.fail("never offered bets")
+            if "data-bets" in page:
+                break
+            if 'role="dialog"' in page:
+                position = re.search(r'name="position" value="(\d+)"', page).group(1)
+                self.client.post("/decision/", {"position": position, "choice": 0})
+            else:
+                self.client.post("/round/next/")
+        self.game.refresh_from_db()
+        target = self.game.tributes.filter(alive=True).last()
+        self.client.post("/round/next/", {"bet-0": target.position, "bet-1": "", "bet-5": target.position})
+        bets = list(Bet.objects.filter(game=self.game))
+        self.assertEqual(
+            [(bet.bettor.position, bet.target_id) for bet in bets], [(0, target.pk)]
+        )  # 5 is not here
+        self.game.refresh_from_db()
+        while self.game.round_seed is not None:  # answer the night's questions
+            page = self.client.get("/").content.decode()
+            position = re.search(r'name="position" value="(\d+)"', page).group(1)
+            self.client.post("/decision/", {"position": position, "choice": 0})
+            self.game.refresh_from_db()
+        bet = Bet.objects.get(game=self.game)
+        self.assertIn(bet.points, (0, 1, 3))
+
+    def test_the_end_of_the_game_shows_a_recap(self):
+        self.start(here=lambda position: False)
+        page = self.play_until_question_or_end()
+        self.assertIn("data-recap", page)
+        self.assertRegex(page, r"wins with \d+ kills")

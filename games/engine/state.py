@@ -11,11 +11,20 @@ from .memory import remember_kill
 FEARED, HIDDEN, BETRAYER, MERCIFUL = "feared", "hidden", "betrayer", "merciful"
 FEARED_AFTER_KILLS = 3
 
+# Who votes for an absent tribute facing a big decision (Game.Voters in the database).
+NOBODY, PAST_WINNERS, DEAD, PAST_WINNERS_AND_DEAD, EVERYONE = (
+    "nobody", "past_winners", "dead", "past_winners_and_dead", "everyone",
+)  # fmt: skip
+VOTED_QUESTIONS = {"meeting", "alliance_offer", "sleeper", "loyalty", "mercy"}
+VOTES_PER_ROUND = 1
+
 
 @dataclass(eq=False)
 class Tribute:
     id: int  # position in the roster: 0, 1, 2... (district = id // 2 + 1)
     present: bool = True  # in the room: makes their own choices
+    past_winner_year: int | None = None  # won an earlier Yearly Games (flavour only)
+    goal: str = ""  # what the tribute does today: HUNT, HIDE, SCAVENGE, GUARD
     alive: bool = True
     wounded: bool = False
     items: list[Item] = field(default_factory=list)
@@ -61,6 +70,9 @@ class Decision:
     option_tributes: tuple[Tribute, ...] = ()  # sponsor question: the options are these tributes
     option_events: tuple = ()  # gamemaker question: the options are these arena events
     for_whole_arena: bool = False
+    vote_for: Tribute | None = None  # a vote: the absent tribute the voters decide for
+    vote_number: int = 0  # this voter is number vote_number of vote_total
+    vote_total: int = 0
 
 
 class NeedAnswer(Exception):
@@ -79,7 +91,7 @@ class Arena:
 
     def __init__(
         self, catalogue, dice, tributes, ask, *, log=None, round=0, day=0,
-        alliance_count=0, feast_happened=False, winner=None,
+        alliance_count=0, feast_happened=False, winner=None, voters=NOBODY, no_conflict_votes=True,
     ):  # fmt: skip
         self.catalogue = catalogue
         self.dice = dice
@@ -94,6 +106,9 @@ class Arena:
         self.winner = winner
         self.fallen_this_round = []
         self.choices_left = 0  # pop-ups still allowed this round
+        self.voters = voters
+        self.no_conflict_votes = no_conflict_votes
+        self.votes_left = 0  # votes still allowed this round
 
     # ---------- story ----------
 
@@ -159,7 +174,61 @@ class Arena:
             self.choices_left -= 1
             decision = Decision(tribute, question, self.catalogue.option_count(question), **values)
             return self.ask_player(decision)
+        if (
+            not tribute.present
+            and question in VOTED_QUESTIONS
+            and self.choices_left > 0
+            and self.votes_left > 0
+        ):
+            voters = self.voters_for(tribute, values)
+            if voters:
+                self.choices_left -= 1
+                self.votes_left -= 1
+                return self.hold_vote(voters, tribute, question, weights, values)
         return self.dice.weighted_index(weights)
+
+    def voters_for(self, tribute, values):
+        """The players in the room who vote for this absent tribute, following the game's settings."""
+
+        def in_group(voter):
+            if self.voters == EVERYONE:
+                return True
+            past_winner = voter.past_winner_year is not None
+            dead = not voter.alive
+            if self.voters == PAST_WINNERS:
+                return past_winner
+            if self.voters == DEAD:
+                return dead
+            if self.voters == PAST_WINNERS_AND_DEAD:
+                return past_winner or dead
+            return False
+
+        involved = [t for t in (tribute, values.get("a"), values.get("b")) if t is not None]
+
+        def has_conflict(voter):
+            return any(voter is t or same_alliance(voter, t) for t in involved)
+
+        return [
+            voter for voter in self.tributes
+            if voter.present and voter is not tribute and in_group(voter)
+            and not (self.no_conflict_votes and has_conflict(voter))
+        ]  # fmt: skip
+
+    def hold_vote(self, voters, tribute, question, weights, values):
+        """Each voter picks an option. The most votes wins; a tie is settled by the dice."""
+        option_count = self.catalogue.option_count(question)
+        counts = [0] * option_count
+        for number, voter in enumerate(voters, start=1):
+            decision = Decision(
+                voter, question, option_count, vote_for=tribute, vote_number=number, vote_total=len(voters),
+                **values,
+            )  # fmt: skip
+            counts[self.ask_player(decision)] += 1
+        best = max(counts)
+        tied = [option for option, count in enumerate(counts) if count == best]
+        if len(tied) == 1:
+            return tied[0]
+        return tied[self.dice.weighted_index([weights[option] or 1 for option in tied])]
 
     def ask_player(self, decision):
         answer = self.ask(decision)

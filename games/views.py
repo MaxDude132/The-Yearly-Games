@@ -65,6 +65,14 @@ def _setup_page(request, game):
         {
             "rows": [{"tribute": row, "number": row.position + 1, "letters": _letters(row)} for row in rows],
             "can_start": len(rows) >= services.MIN_TRIBUTES,
+            "voter_choices": [
+                (Game.Voters.NOBODY, _("Nobody: the arena decides")),
+                (Game.Voters.DEAD, _("The dead")),
+                (Game.Voters.PAST_WINNERS, _("Past winners")),
+                (Game.Voters.PAST_WINNERS_AND_DEAD, _("Past winners and the dead")),
+                (Game.Voters.EVERYONE, _("Everyone in the room")),
+            ],
+            "game": game,
         },
     )
 
@@ -126,9 +134,18 @@ def _game_page(request, game):
             "main_button": main_button,
             "round_waiting": decision is not None,
             "decision": _decision_context(decision, rows, translator, names, game, arena),
+            "bets": _bet_form(game, arena, decision, rows, names),
+            "scores": [
+                {"name": names[row.position], "points": points} for row, points in services.bet_scores(game)
+            ],
+            "recap": _recap(arena, translator, name_of) if arena.winner else None,
             "confirm_quit": "confirm_quit" in request.GET,
         },
     )
+
+
+def _goal_labels():  # a function, so the labels follow the viewer's language
+    return {"hunt": _("Hunting"), "hide": _("Hiding"), "scavenge": _("Scavenging"), "guard": _("With allies")}
 
 
 def _card(row, tribute, arena, translator, names):
@@ -142,6 +159,11 @@ def _card(row, tribute, arena, translator, names):
 
     enemy_names = [names[i] for i in tribute.grudges if arena.tributes[i].alive]
     details = [f"{_('District')} {row.district}"]
+    if row.past_winner_year:
+        victor = _("Victor of %(year)s") % {"year": row.past_winner_year}
+        details.append(mark_safe(f'<span class="text-gold">{escape(victor)}</span>'))
+    if tribute.alive and tribute.goal:
+        details.append(_goal_labels()[tribute.goal])
     if tribute.alliance:
         alliance = f"{escape(_('Alliance'))} {tribute.alliance}"
         details.append(mark_safe(f'<span class="text-moon">{alliance}</span>'))
@@ -172,7 +194,11 @@ def _decision_context(decision, rows, translator, names, game, arena):
     if decision is None:
         return None
     row = rows[decision.tribute.id]
-    if decision.for_whole_arena:
+    if decision.vote_for:
+        label = _("Vote %(number)s of %(total)s, for %(name)s") % {
+            "number": decision.vote_number, "total": decision.vote_total, "name": names[decision.vote_for.id],
+        }  # fmt: skip
+    elif decision.for_whole_arena:
         label = _("Decides for the whole arena")
     elif decision.tribute.alive:
         label = _("Decision for")
@@ -226,7 +252,7 @@ def _person(tribute, translator, names):
 def _decision_facts(decision, arena, translator, names):
     """What the player needs to know to choose: how the tributes involved are doing, how they
     relate to each other, and how many are left."""
-    me = decision.tribute
+    me = decision.vote_for or decision.tribute
     other = next((t for t in (decision.a, decision.b) if t is not None and t is not me), None)
     people, relations = [], []
     if me.alive and not decision.for_whole_arena:
@@ -289,6 +315,11 @@ def next_round(request, game):
     if game.winner_id:
         services.reset_game(game)  # "New game": back to the setup screen
         return redirect("index")
+    bets = {}
+    for key, value in request.POST.items():
+        if key.startswith("bet-") and key[4:].isdigit() and value.isdigit():
+            bets[int(key[4:])] = int(value)
+    services.place_bets(game, bets)
     services.start_round(game)
     return _home_new()
 
@@ -317,3 +348,47 @@ def set_present(request, game, position):
         return JsonResponse({"error": "a question is open"}, status=409)
     updated = game.tributes.filter(position=position).update(present=request.POST.get("present") == "1")
     return HttpResponse(status=204 if updated else 404)
+
+
+# ---------- bets and the recap ----------
+def _bet_form(game, arena, decision, rows, names):
+    """Before a night (not the final duel), each player in the room may bet on who falls first."""
+    living = arena.living()
+    if decision is not None or arena.winner or not arena.round or len(living) <= 2:
+        return None
+    if not is_night_round(arena.round + 1):
+        return None
+    bettors = [row for row in rows if row.present]
+    if not bettors:
+        return None
+    return {
+        "bettors": [{"position": row.position, "name": names[row.position]} for row in bettors],
+        "targets": [{"position": t.id, "name": names[t.id]} for t in living],
+    }
+
+
+# Story lines worth repeating in the recap: the moments where the story turned.
+RECAP_GROUPS = (
+    "alliance.betrayal", "combat.spared", "combat.debt_repaid", "reputation.feared", "arena.shielded",
+    "bounty.placed", "encounter.mercy_wins_over", "encounter.cold_handshake",
+)  # fmt: skip
+
+
+def _recap(arena, translator, name_of):
+    """The end of the game: the victor's kills and the turning points of the story."""
+    winner = arena.winner.id
+    moments = [
+        translator.story(entry, name_of)
+        for entry in arena.log
+        if entry.line.group in RECAP_GROUPS
+        or entry.line.group.startswith("callback.")
+        or (entry.style == "death" and entry.a == winner)
+    ]
+    deadliest = max(arena.tributes, key=lambda tribute: tribute.kills)
+    return {
+        "winner": name_of(winner),
+        "winner_kills": arena.winner.kills,
+        "deadliest": name_of(deadliest.id) if deadliest.kills else None,
+        "deadliest_kills": deadliest.kills,
+        "moments": moments,
+    }

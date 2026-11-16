@@ -145,3 +145,90 @@ msgstr "Clément"
 
 msgid "Owes a life to"
 msgstr "Doit la vie à"
+
+msgid "Nobody: the arena decides"
+msgstr "Personne : l'arène décide"
+
+msgid "The dead"
+msgstr "Les morts"
+
+msgid "Past winners"
+msgstr "Les anciens vainqueurs"
+
+msgid "Past winners and the dead"
+msgstr "Les anciens vainqueurs et les morts"
+
+msgid "Everyone in the room"
+msgstr "Tout le monde dans la pièce"
+
+msgid "Votes"
+msgstr "Votes"
+
+msgid "When a tribute who is not in the room faces a big decision, these players vote for them."
+msgstr "Quand un tribut absent fait face à une grande décision, ces joueurs votent à sa place."
+
+msgid "Who votes"
+msgstr "Qui vote"
+
+msgid "Fair play: nobody votes on a decision about their own tribute or alliance"
+msgstr "Fair-play : personne ne vote sur une décision qui concerne son propre tribut ou son alliance"
+
+msgid "Won in"
+msgstr "Gagné en"
+
+msgid "Year this tribute won the Games, if they are a past winner"
+msgstr "Année où ce tribut a gagné les Jeux, s'il est un ancien vainqueur"
+
+msgid "Year"
+msgstr "Année"
+
+msgid "won the Games"
+msgstr "a gagné les Jeux"
+
+msgid "Victor of %(year)s"
+msgstr "Vainqueur de %(year)s"
+
+msgid "Hunting"
+msgstr "Chasse"
+
+msgid "Hiding"
+msgstr "Se cache"
+
+msgid "Scavenging"
+msgstr "Fouille"
+
+msgid "With allies"
+msgstr "Avec ses alliés"
+
+msgid "Vote %(number)s of %(total)s, for %(name)s"
+msgstr "Vote %(number)s sur %(total)s, pour %(name)s"
+
+msgid "Recap"
+msgstr "Récapitulatif"
+
+msgid "%(name)s wins with %(kills)s kills."
+msgstr "%(name)s gagne avec %(kills)s victimes."
+
+msgid "The deadliest tribute was %(name)s, with %(kills)s kills."
+msgstr "Le tribut le plus redoutable était %(name)s, avec %(kills)s victimes."
+
+msgid "Turning points"
+msgstr "Moments clés"
+
+msgid "Best guesses"
+msgstr "Meilleurs pronostics"
+
+msgid "points"
+msgstr "points"
+
+msgid "Bets for the night"
+msgstr "Paris pour la nuit"
+
+msgid "Who falls first tonight? 3 points for the first to fall, 1 point if they fall later in the night."
+msgstr "Qui tombe en premier cette nuit ? 3 points pour le premier à tomber, 1 point s'il tombe plus tard dans la nuit."
+
+msgid "No bet"
+msgstr "Pas de pari"
+
+msgid "Bets"
+msgstr "Paris"

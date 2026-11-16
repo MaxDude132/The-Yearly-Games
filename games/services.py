@@ -14,7 +14,7 @@ from content import models as content
 from games import models
 from games.engine.catalogue import ArenaEvent, Catalogue, Item, Line
 from games.engine.dice import Dice
-from games.engine.rounds import play_next_round
+from games.engine.rounds import is_night_round, play_next_round
 from games.engine.state import Arena, Entry, NeedAnswer
 from games.engine.state import Tribute as EngineTribute
 
@@ -72,7 +72,8 @@ def reset_game(game):
     models.TributeItem.objects.filter(tribute__game=game).delete()
     models.TributeTag.objects.filter(tribute__game=game).delete()
     models.Grudge.objects.filter(tribute__game=game).delete()
-    game.tributes.update(alive=True, wounded=False, alliance=0, kills=0, died_on_day=0)
+    game.bets.all().delete()
+    game.tributes.update(alive=True, wounded=False, alliance=0, kills=0, died_on_day=0, goal="")
     game.status = models.Game.Status.SETUP
     game.round = game.day = game.alliance_count = game.first_new_entry = 0
     game.feast_happened = False
@@ -91,6 +92,8 @@ def load_arena(game, catalogue, dice, ask):
         EngineTribute(
             id=row.position,
             present=row.present,
+            past_winner_year=row.past_winner_year,
+            goal=row.goal,
             alive=row.alive,
             wounded=row.wounded,
             alliance=row.alliance,
@@ -135,6 +138,8 @@ def load_arena(game, catalogue, dice, ask):
         alliance_count=game.alliance_count,
         feast_happened=game.feast_happened,
         winner=tributes[id_of[game.winner_id]] if game.winner_id else None,
+        voters=game.voters,
+        no_conflict_votes=game.no_conflict_votes,
     )  # fmt: skip
 
 
@@ -145,8 +150,8 @@ def save_arena(game, arena):
     rows = list(game.tributes.order_by("position"))
     for row, tribute in zip(rows, arena.tributes, strict=True):
         row.alive, row.wounded, row.alliance = tribute.alive, tribute.wounded, tribute.alliance
-        row.kills, row.died_on_day = tribute.kills, tribute.died_on_day
-    models.Tribute.objects.bulk_update(rows, ["alive", "wounded", "alliance", "kills", "died_on_day"])
+        row.kills, row.died_on_day, row.goal = tribute.kills, tribute.died_on_day, tribute.goal
+    models.Tribute.objects.bulk_update(rows, ["alive", "wounded", "alliance", "kills", "died_on_day", "goal"])
 
     models.TributeItem.objects.filter(tribute__game=game).delete()
     models.Grudge.objects.filter(tribute__game=game).delete()
@@ -202,6 +207,7 @@ def save_arena(game, arena):
     game.round_seed = None
     game.save()
     game.answers.all().delete()
+    score_bets(game, arena, rows)
 
 
 # ---------- playing a round ----------
@@ -254,3 +260,49 @@ def answer_decision(game, position, choice):
     models.Answer.objects.create(game=game, position=answered, choice=choice)
     resume(game)
     return True
+
+
+# ---------- bets ----------
+FIRST_TO_FALL_POINTS = 3
+FELL_THAT_NIGHT_POINTS = 1
+
+
+def place_bets(game, bets):
+    """Saves the bets for the coming night. bets: {bettor position: target position}.
+    Only players in the room bet, only on living tributes, and only before a night."""
+    coming = game.round + 1
+    if not is_night_round(coming):
+        return
+    rows = {row.position: row for row in game.tributes.all()}
+    game.bets.filter(round=coming).delete()
+    models.Bet.objects.bulk_create(
+        models.Bet(game=game, round=coming, bettor=rows[bettor], target=rows[target])
+        for bettor, target in bets.items()
+        if bettor in rows and target in rows and rows[bettor].present and rows[target].alive
+    )
+
+
+def score_bets(game, arena, rows):
+    """After a night: 3 points for the first to fall, 1 for anyone else who fell that night."""
+    bets = list(game.bets.filter(round=arena.round, points=None))
+    if not bets:
+        return
+    cannon = next(entry for entry in reversed(arena.log) if entry.style == "cannon")
+    fallen = [rows[tribute_id].pk for tribute_id in cannon.names]
+    for bet in bets:
+        if fallen and bet.target_id == fallen[0]:
+            bet.points = FIRST_TO_FALL_POINTS
+        elif bet.target_id in fallen:
+            bet.points = FELL_THAT_NIGHT_POINTS
+        else:
+            bet.points = 0
+    models.Bet.objects.bulk_update(bets, ["points"])
+
+
+def bet_scores(game):
+    """[(bettor row, points)] for everyone who bet, best first."""
+    totals = {}
+    for bet in game.bets.exclude(points=None).select_related("bettor"):
+        row, points = totals.get(bet.bettor_id, (bet.bettor, 0))
+        totals[bet.bettor_id] = (row, points + bet.points)
+    return sorted(totals.values(), key=lambda pair: (-pair[1], pair[0].position))

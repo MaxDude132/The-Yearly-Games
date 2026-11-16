@@ -50,12 +50,13 @@ The tribute who formed an alliance decides group choices (where to camp, whether
 - Decision:
 
 ### 2c. A daily goal per tribute
+**Implemented**: each morning every living tribute gets a goal (`Tribute.goal`): hunt, hide, scavenge or stay with allies. Up to 3 players in the room choose theirs (question `goal`); the dice choose for the rest. The goal shifts the turn weights in `everyones_turn` (`GOAL_EFFECTS` in `rounds.py`) and shows on the board.
 At the start of a day, a present player picks: hunt, hide, scavenge, or guard the alliance. It changes the turn weights in `everyones_turn`, so one choice shapes the whole day.
 - Cost: medium. Needs a new field per tribute for the current day.
 - Decision:
 
 ### 2d. Gamemaker targets
-**Implemented**: after picking a disaster, the Gamemaker shields one of four random tributes, never themselves (question `shield`).
+**Implemented**: after picking a disaster, a fallen Gamemaker shields one of four random tributes (question `shield`). Living Gamemakers do not shield: they could never shield themselves, which made being in the room a small disadvantage.
 The Gamemaker picks an event and also who it hits, or who gets a mercy.
 - Touches: `start_of_day` in `rounds.py`, `arena_event` in `events.py`.
 - Cost: low to medium.
@@ -93,10 +94,12 @@ Tactics chosen against a situation the story already described (for example an a
 ## 5. Involve the whole room
 
 ### 5a. Fallen players do more
+**Implemented (bounty)**: at the start of a day, 20% of the time a fallen player in the room picks one of 4 living tributes to put a bounty on; 2 random non-allies gain a grudge against them. Not done: the vote on a twist (the votes in 5b cover most of it).
 Beyond sponsor gifts: vote on a twist, or place a bounty that creates grudges.
 - Decision:
 
 ### 5b. Room votes for absent tributes
+**Implemented**: setup has a voter select (nobody, the dead, past winners, both, everyone; default the dead) and a fair-play box (on by default). Past winners are set with a "Won in" year per tribute (a single year field instead of a checkbox plus year: an empty field means not a past winner). One vote per round, on meeting, alliance_offer, sleeper, loyalty and mercy. Each voter gets their own pop-up ("Vote 2 of 3, for X"), so the existing one-answer-per-question replay works unchanged. Ties go to the dice (weighted by the usual odds).
 When a tribute not in the room faces a big decision, a group of players votes instead of the dice.
 **Kept, with a configurable voter group** (setting chosen at setup, see "Answers so far"):
 - **Past winners:** tributes marked at setup as having won an earlier Yearly Games, with the year. They are playing in this game. No identity across games needed.
@@ -112,16 +115,19 @@ Setup also gains the past-winner fields (a checkbox and a year per name), stored
 - Decision: keep, configurable.
 
 ### 5c. Betting round
+**Implemented**: before each night (not the final duel) a "Bets for the night" panel lets each player in the room pick a tribute. The Continue button sends the bets (table `Bet`). 3 points for the first to fall, 1 for falling later that night. Scores show on the board and in the recap.
 Before each night, everyone picks who they think dies first. Keeps players engaged during other players' turns. Needs a score or recap to pay off.
 - Decision:
 
 ## 6. Story shape
 
 ### 6a. Acts
+**Not done.** Needs a design discussion: which beats, and how earlier choices shape them.
 Fixed beats (opening, middle, feast, finale) whose content depends on earlier choices (who holds the best weapon, who has allies, who is `Feared`).
 - Decision:
 
 ### 6b. End-of-game recap
+**Implemented**: after the winner line: the victor's kill count, the deadliest tribute, the turning points (betrayals, mercy, debts repaid, feared, shields, bounties, callbacks, the victor's kills) and the bet ranking.
 Shows the decisive moments, for example "the choice that changed the game", picked from the log.
 - Cost: low to medium. Independent of everything else.
 - Decision:

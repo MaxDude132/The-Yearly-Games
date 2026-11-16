@@ -320,6 +320,7 @@ class EngineTests(TestCase):
         for seed in range(50):
             arena, tributes = self.arena_with_story()
             arena.dice, arena.ask = Dice(seed), ask
+            tributes[1].alive = False
             ask_shield(arena, tributes[1], self.catalogue.arena_events[0])
         self.assertTrue(asked)
         for decision in asked:
@@ -331,3 +332,132 @@ class EngineTests(TestCase):
 
         self.assertLess(choice_budget(20), choice_budget(8))
         self.assertLess(choice_budget(8), choice_budget(3))
+
+    # ---------- votes for absent tributes ----------
+    def voting_arena(self, voters, no_conflict_votes=True):
+        """Tributes 0-5. 0 and 1 are in the room and alive, 2 is in the room and dead,
+        3 is a past winner in the room, 4 and 5 are absent."""
+        tributes = [Tribute(id=i, present=i < 4) for i in range(6)]
+        tributes[2].alive = False
+        tributes[3].past_winner_year = 2023
+        arena = Arena(
+            self.catalogue, Dice(1), tributes, lambda decision: 0,
+            voters=voters, no_conflict_votes=no_conflict_votes,
+        )  # fmt: skip
+        return arena, tributes
+
+    def voter_ids(self, voters, no_conflict_votes=True, b=5):
+        arena, tributes = self.voting_arena(voters, no_conflict_votes)
+        return [t.id for t in arena.voters_for(tributes[4], {"a": tributes[4], "b": tributes[b]})]
+
+    def test_each_voter_setting_picks_the_right_players(self):
+        self.assertEqual(self.voter_ids("nobody"), [])
+        self.assertEqual(self.voter_ids("dead"), [2])
+        self.assertEqual(self.voter_ids("past_winners"), [3])
+        self.assertEqual(self.voter_ids("past_winners_and_dead"), [2, 3])
+        self.assertEqual(self.voter_ids("everyone"), [0, 1, 2, 3])
+
+    def test_fair_play_keeps_players_out_of_votes_about_them_or_their_alliance(self):
+        self.assertEqual(self.voter_ids("everyone", b=0), [1, 2, 3])  # 0 is the other tribute
+        arena, tributes = self.voting_arena("everyone")
+        tributes[1].alliance = tributes[5].alliance = 1
+        voters = arena.voters_for(tributes[4], {"a": tributes[4], "b": tributes[5]})
+        self.assertEqual([t.id for t in voters], [0, 2, 3])  # 1 is allied with 5
+        self.assertEqual(self.voter_ids("everyone", no_conflict_votes=False, b=0), [0, 1, 2, 3])
+
+    def test_a_vote_asks_each_voter_and_the_majority_wins(self):
+        arena, tributes = self.voting_arena("everyone")
+        arena.choices_left, arena.votes_left = 5, 1
+        asked = []
+        answers = iter([2, 2, 0, 1])
+
+        def ask(decision):
+            asked.append(decision)
+            return next(answers)
+
+        arena.ask = ask
+        choice = arena.decide(tributes[4], "meeting", [1, 1, 1], a=tributes[4], b=tributes[5])
+        self.assertEqual(choice, 2)
+        self.assertEqual([d.tribute.id for d in asked], [0, 1, 2, 3])
+        self.assertTrue(all(d.vote_for is tributes[4] and d.vote_total == 4 for d in asked))
+        self.assertEqual(arena.votes_left, 0)
+        # Only one vote per round: the next big decision goes to the dice.
+        arena.ask = lambda decision: self.fail("asked again")
+        arena.decide(tributes[4], "meeting", [1, 1, 1], a=tributes[4], b=tributes[5])
+
+    def test_a_tied_vote_goes_to_one_of_the_tied_options(self):
+        for seed in range(30):
+            arena, tributes = self.voting_arena("past_winners_and_dead")
+            arena.dice, arena.choices_left, arena.votes_left = Dice(seed), 5, 1
+            answers = iter([0, 2])
+            arena.ask = lambda decision, answers=answers: next(answers)
+            choice = arena.decide(tributes[4], "meeting", [1, 1, 1], a=tributes[4], b=tributes[5])
+            self.assertIn(choice, (0, 2))
+
+    def test_present_tributes_and_small_questions_are_never_voted_on(self):
+        arena, tributes = self.voting_arena("everyone")
+        arena.choices_left, arena.votes_left = 5, 1
+        asked = []
+        arena.ask = lambda decision: asked.append(decision) or 0
+        arena.decide(tributes[4], "berries", [1, 1], a=tributes[4])
+        self.assertEqual(asked, [])
+        arena.decide(tributes[0], "meeting", [1, 1, 1], a=tributes[0], b=tributes[5])
+        self.assertEqual([d.vote_for for d in asked], [None])  # tribute 0 answers for themselves
+
+    def test_votes_do_not_help_the_room_win_with_fair_play(self):
+        """With fair play on, random voters in the room must not make the room win more often."""
+        games = 1200
+        for voters in ("dead", "past_winners", "past_winners_and_dead", "everyone"):
+            present_wins = 0
+            for game in range(games):
+                swapped = game % 2 == 1
+                dice = Dice(30_000 + game)
+                tributes = [Tribute(id=i, present=(i % 2 == 0) != swapped) for i in range(TRIBUTES)]
+                for tribute in tributes[::5]:
+                    tribute.past_winner_year = 2020
+                answer = lambda decision, dice=dice: dice.int(decision.option_count)  # noqa: E731
+                arena = Arena(self.catalogue, dice, tributes, answer, voters=voters)
+                while not arena.winner:
+                    play_next_round(arena)
+                present_wins += arena.winner.present
+            share = 100 * present_wins / games
+            print(f"\nvotes by {voters}: present players win {share:.1f}%")
+            self.assertTrue(44 < share < 56, f"{voters}: {share:.1f}%")
+
+    # ---------- goals and bounties ----------
+    def test_every_living_tribute_has_a_goal_after_the_first_day(self):
+        from games.engine.rounds import GOALS
+
+        arena = self.play_rounds(lambda dice, decision: dice.int(decision.option_count), rounds=2)
+        self.assertTrue(all(t.goal in GOALS for t in arena.living()))
+
+    def test_only_a_few_players_choose_their_goal_each_day(self):
+        from games.engine.rounds import GOAL_POPUPS_PER_DAY, choose_goals
+
+        arena, _tributes = self.arena_with_story()
+        asked = []
+        arena.ask = lambda decision: asked.append(decision) or 0
+        choose_goals(arena)
+        self.assertEqual(len(asked), GOAL_POPUPS_PER_DAY)
+        self.assertTrue(all(d.question == "goal" for d in asked))
+
+    def test_a_bounty_makes_others_hold_a_grudge_against_the_target(self):
+        from games.engine.rounds import BOUNTY_HUNTERS, place_bounty
+
+        arena, tributes = self.arena_with_story()
+        tributes[0].alive = False
+        arena.ask = lambda decision: 0
+        place_bounty(arena, tributes[0])
+        entry = arena.log[-1]
+        self.assertEqual(entry.line.group, "bounty.placed")
+        self.assertEqual(entry.sponsor, 0)
+        self.assertEqual(len(entry.names), BOUNTY_HUNTERS)
+        for hunter in entry.names:
+            self.assertIn(entry.a, tributes[hunter].grudges)
+
+    def test_a_living_gamemaker_shields_nobody(self):
+        from games.engine.rounds import ask_shield
+
+        arena, tributes = self.arena_with_story()
+        arena.ask = lambda decision: self.fail("a living Gamemaker was asked to shield")
+        self.assertIsNone(ask_shield(arena, tributes[1], self.catalogue.arena_events[0]))

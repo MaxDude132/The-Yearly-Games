@@ -6,9 +6,10 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 from PIL import Image, ImageOps
 
-from games.models import Tribute
+from games.models import Game, Tribute
 
 NAME_MAX_LENGTH = Tribute._meta.get_field("name").max_length
+FIRST_YEAR, LAST_YEAR = 1900, 2200  # a past-winner year outside this range is ignored
 PHOTO_SIZE = 192  # pixels: a small square is plenty for a round avatar
 MAX_UPLOAD_BYTES = 12 * 1024 * 1024
 
@@ -33,12 +34,27 @@ def save_roster(game, post, files):
     for row in rows:
         row.name = post.get(f"name-{row.position}", row.name).strip()[:NAME_MAX_LENGTH]
         row.present = f"here-{row.position}" in post
+        row.past_winner_year = parse_year(post.get(f"won-{row.position}", ""))
         uploaded = files.get(f"photo-{row.position}")
         photo = photo_to_small_square(uploaded) if uploaded else None
         if photo:  # not an image: keep the old photo
             row.photo.delete(save=False)
             row.photo.save(f"{uuid.uuid4().hex}.jpg", photo, save=False)
-    Tribute.objects.bulk_update(rows, ["name", "present", "photo"])
+    Tribute.objects.bulk_update(rows, ["name", "present", "past_winner_year", "photo"])
+    voters = post.get("voters", game.voters)
+    if voters in Game.Voters.values:
+        game.voters = voters
+    game.no_conflict_votes = "no_conflict_votes" in post
+    game.save(update_fields=["voters", "no_conflict_votes", "updated_at"])
+
+
+def parse_year(text):
+    """The year a tribute won the Games, or None if the field is empty or not a sensible year."""
+    text = text.strip()
+    if not text.isdigit():
+        return None
+    year = int(text)
+    return year if FIRST_YEAR <= year <= LAST_YEAR else None
 
 
 def add_tribute(game):

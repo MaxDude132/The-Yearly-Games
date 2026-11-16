@@ -4,7 +4,17 @@ from .catalogue import ARMOR, FOOD, GEAR, HEALING, TRAP, WEAPON
 from .combat import fight
 from .encounters import ally_moment, meet_someone
 from .events import arena_event, build_trap, feast, hazard, random_item, strange_berries, use_random_item
-from .state import FEARED, HIDDEN, Decision, add_grudge, add_tag, find_item, remove_tag, same_alliance
+from .state import (
+    FEARED,
+    HIDDEN,
+    VOTES_PER_ROUND,
+    Decision,
+    add_grudge,
+    add_tag,
+    find_item,
+    remove_tag,
+    same_alliance,
+)
 
 
 def choice_budget(alive):
@@ -17,6 +27,18 @@ def choice_budget(alive):
 
 
 HIDDEN_UNTIL_DAY = 3  # a tribute who fled the Bloodbath stays hidden for the first two nights
+
+# Daily goals: what a tribute sets out to do each morning. They change which turns are likely.
+HUNT, HIDE, SCAVENGE, GUARD = "hunt", "hide", "scavenge", "guard"
+GOALS = [HUNT, HIDE, SCAVENGE, GUARD]  # in the order of the "goal" question's options
+GOAL_POPUPS_PER_DAY = 3  # how many players in the room choose their goal each day (the others: the dice)
+GOAL_EFFECTS = {
+    HUNT: {"meet_someone": 10, "find_item": 3, "quiet": -6},
+    HIDE: {"meet_someone": -10, "quiet": 8, "hazard": -2},
+    SCAVENGE: {"find_item": 8, "berries": 2, "meet_someone": -6},
+    GUARD: {"ally_moment": 12, "meet_someone": -4},
+}
+BOUNTY_HUNTERS = 2  # tributes who take up a bounty
 
 # ---------- the Bloodbath ----------
 # Balance (tuned with the simulation tests): rushing, grabbing a pack and fleeing
@@ -88,9 +110,10 @@ def bloodbath(arena):
 
 # ---------- between rounds ----------
 def ask_shield(arena, gamemaker, event):
-    """After choosing a disaster, the Gamemaker may shield one of a few tributes from it.
-    Never themselves, so being in the room does not buy safety. Returns the shielded tribute or None."""
-    if event.is_feast:
+    """After choosing a disaster, a fallen Gamemaker shields one of a few tributes from it.
+    Only the fallen: a living Gamemaker could never shield themselves, which would make being in
+    the room a disadvantage. Returns the shielded tribute or None."""
+    if event.is_feast or gamemaker.alive:
         return None
     candidates = arena.dice.shuffle([t for t in arena.living() if t is not gamemaker])[:4]
     if not candidates:
@@ -109,6 +132,9 @@ def start_of_day(arena):
     dice = arena.dice
     players_in_room = [t for t in arena.tributes if t.present]
     fallen_in_room = [t for t in players_in_room if not t.alive]
+    if fallen_in_room and dice.chance(0.2):
+        arena.choices_left -= 1
+        return place_bounty(arena, dice.pick(fallen_in_room))
     if fallen_in_room and dice.chance(0.35):
         arena.choices_left -= 1
         sponsor = dice.pick(fallen_in_room)
@@ -137,6 +163,36 @@ def start_of_day(arena):
         feast(arena)
     elif arena.day > 1 and dice.chance(0.2):
         arena_event(arena, dice.pick(arena.catalogue.arena_events))
+
+
+def place_bounty(arena, sponsor):
+    """A fallen player puts a price on one of a few living tributes: some others now hunt them."""
+    dice = arena.dice
+    candidates = dice.shuffle(arena.living())[:4]
+    decision = Decision(
+        sponsor, "bounty", len(candidates), sponsor=sponsor, option_tributes=tuple(candidates)
+    )
+    target = candidates[arena.ask_player(decision)]
+    hunters = [t for t in arena.living() if t is not target and not same_alliance(t, target)]
+    hunters = dice.shuffle(hunters)[:BOUNTY_HUNTERS]
+    for hunter in hunters:
+        add_grudge(hunter, target)
+    if hunters:
+        arena.add_to_story("bad", arena.line("bounty.placed"), sponsor=sponsor, a=target, names=hunters)
+    else:
+        arena.add_to_story("bad", arena.line("bounty.ignored"), sponsor=sponsor, a=target)
+
+
+def choose_goals(arena):
+    """Each morning every living tribute sets a goal. A few players in the room choose theirs."""
+    asked = 0
+    for tribute in arena.dice.shuffle(arena.living()):
+        if tribute.present and asked < GOAL_POPUPS_PER_DAY:
+            asked += 1
+            choice = arena.ask_player(Decision(tribute, "goal", len(GOALS), a=tribute))
+        else:
+            choice = arena.dice.int(len(GOALS))
+        tribute.goal = GOALS[choice]
 
 
 # ---------- a normal day or night ----------
@@ -168,6 +224,9 @@ def everyones_turn(arena, is_night):
             "berries": 4,
             "quiet": 10 if under_pressure else 25,
         }
+        for turn_name, change in GOAL_EFFECTS.get(tribute.goal, {}).items():
+            if turn_weights[turn_name]:  # 0 means this turn is not possible (no ally, no items)
+                turn_weights[turn_name] = max(0, turn_weights[turn_name] + change)
         turn = list(turn_weights)[dice.weighted_index(list(turn_weights.values()))]
 
         if turn == "meet_someone":
@@ -238,6 +297,7 @@ def play_next_round(arena):
 
     # Everyone present chooses at the Bloodbath and in the final duel; otherwise a few pop-ups per round.
     arena.choices_left = float("inf") if arena.round == 1 or is_finale else choice_budget(alive_at_start)
+    arena.votes_left = VOTES_PER_ROUND
 
     if arena.round == 1:
         title, style = "phase.bloodbath", "heading"
@@ -262,6 +322,7 @@ def play_next_round(arena):
             arena.add_to_story("bad", arena.line("phase.alliances_shatter"))
 
         if not is_night:
+            choose_goals(arena)
             start_of_day(arena)
         everyones_turn(arena, is_night)
 

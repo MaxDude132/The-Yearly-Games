@@ -21,7 +21,7 @@ WOUND_PENALTY = 0.25
 WEAPON_BREAK_CHANCE = 0.15  # a weapon is never a guarantee
 ARMOR_SAVE_CHANCE = 0.4
 LOOT_CHANCE = 0.6
-MERCY_WEIGHTS = [85, 15]  # when the winner is not a player: finish them, or spare them
+MERCY_WEIGHTS = [65, 35]  # when the winner is not a player: finish them, or spare them
 
 
 def fighting_strength(arena, tribute):

@@ -376,5 +376,11 @@
 {"model":"content.storylinetranslation","fields":{"line":["encounter.mercy_wins_over",0],"language":"fr","text":"{b} s'apprêtait à refuser, puis se rappelle que {a} épargne les vaincus. {b} dit oui."}},
 {"model":"content.storyline","fields":{"group":"arena.shielded","variant":0}},
 {"model":"content.storylinetranslation","fields":{"line":["arena.shielded",0],"language":"en","text":"The disaster should have found {a}, but a hidden hand shields them."}},
-{"model":"content.storylinetranslation","fields":{"line":["arena.shielded",0],"language":"fr","text":"Le désastre aurait dû frapper {a}, mais une main cachée le protège."}}
+{"model":"content.storylinetranslation","fields":{"line":["arena.shielded",0],"language":"fr","text":"Le désastre aurait dû frapper {a}, mais une main cachée le protège."}},
+{"model":"content.storyline","fields":{"group":"bounty.placed","variant":0}},
+{"model":"content.storylinetranslation","fields":{"line":["bounty.placed",0],"language":"en","text":"{sponsor} puts a price on {a}'s head. {names} take the job."}},
+{"model":"content.storylinetranslation","fields":{"line":["bounty.placed",0],"language":"fr","text":"{sponsor} met une prime sur la tête de {a}. {names} acceptent le contrat."}},
+{"model":"content.storyline","fields":{"group":"bounty.ignored","variant":0}},
+{"model":"content.storylinetranslation","fields":{"line":["bounty.ignored",0],"language":"en","text":"{sponsor} puts a price on {a}'s head, but nobody takes the job."}},
+{"model":"content.storylinetranslation","fields":{"line":["bounty.ignored",0],"language":"fr","text":"{sponsor} met une prime sur la tête de {a}, mais personne n'accepte le contrat."}}
 ]

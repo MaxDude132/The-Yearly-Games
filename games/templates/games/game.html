@@ -14,8 +14,31 @@
         {% for entry in entries %}{% if entry.heading %}<h2 id="entry-{{ entry.index }}" class="{{ entry.classes }}">{{ entry.html }}</h2>
         {% else %}<p id="entry-{{ entry.index }}" class="{{ entry.classes }} [&_b]:font-semibold">{{ entry.html }}</p>
         {% endif %}{% empty %}<p class="mb-2 max-w-[65ch] border-l-3 border-line py-0.5 pl-3">{% translate "The tributes rise into the arena." %}</p>{% endfor %}
+        {% if recap %}
+        <div class="mt-6 flex max-w-[65ch] flex-col gap-2 rounded-md border border-gold p-4" data-recap>
+          <h2 class="m-0 font-display text-2xl leading-none font-bold tracking-[.06em] text-gold uppercase">{% translate "Recap" %}</h2>
+          <p class="m-0">{% blocktranslate with name=recap.winner kills=recap.winner_kills %}{{ name }} wins with {{ kills }} kills.{% endblocktranslate %}{% if recap.deadliest and recap.deadliest != recap.winner %} {% blocktranslate with name=recap.deadliest kills=recap.deadliest_kills %}The deadliest tribute was {{ name }}, with {{ kills }} kills.{% endblocktranslate %}{% endif %}</p>
+          {% if recap.moments %}<h3 class="m-0 text-sm tracking-widest text-ember uppercase">{% translate "Turning points" %}</h3>
+          <ul class="m-0 flex list-none flex-col gap-1 p-0 [&_b]:font-semibold">{% for moment in recap.moments %}<li>{{ moment }}</li>{% endfor %}</ul>{% endif %}
+          {% if scores %}<h3 class="m-0 text-sm tracking-widest text-ember uppercase">{% translate "Best guesses" %}</h3>
+          <ol class="m-0 pl-5">{% for score in scores %}<li>{{ score.name }}: {{ score.points }} {% translate "points" %}</li>{% endfor %}</ol>{% endif %}
+        </div>
+        {% endif %}
+        {% if bets %}
+        <div class="mt-6 flex max-w-[65ch] flex-col gap-2 rounded-md border border-moon p-4" data-bets>
+          <h2 class="m-0 font-display text-2xl leading-none font-bold tracking-[.06em] text-moon uppercase">{% translate "Bets for the night" %}</h2>
+          <p class="m-0 text-sm text-moss">{% translate "Who falls first tonight? 3 points for the first to fall, 1 point if they fall later in the night." %}</p>
+          {% for bettor in bets.bettors %}<label class="flex items-center gap-2"><span class="min-w-24 flex-1 font-semibold wrap-anywhere">{{ bettor.name }}</span>
+            <select form="next-round" name="bet-{{ bettor.position }}" class="min-w-0 flex-1 rounded-md border border-line bg-panel px-2 py-1.5">
+              <option value="">{% translate "No bet" %}</option>
+              {% for target in bets.targets %}<option value="{{ target.position }}">{{ target.name }}</option>{% endfor %}
+            </select></label>
+          {% endfor %}
+        </div>
+        {% endif %}
       </section>
       <aside class="flex flex-col gap-2 overflow-y-auto border-l border-line p-4 max-md:hidden max-md:border-0 max-md:group-[.show-board]:flex">
+        {% if scores and not recap %}<div class="rounded-md border border-moon px-3 py-2 text-[.85rem]" data-scores><span class="text-moon">{% translate "Bets" %}:</span> {% for score in scores %}{% if not forloop.first %} · {% endif %}{{ score.name }} {{ score.points }}{% endfor %}</div>{% endif %}
         {% for card in cards %}
         <div class="flex flex-col gap-1 rounded-md border border-line bg-panel px-3 py-2 {% if not card.alive %}opacity-55{% endif %}">
           <div class="flex flex-wrap items-center gap-2">
@@ -40,7 +63,7 @@
       <form method="get" action="{% url 'index' %}"><button type="submit" class="btn" name="confirm_quit" value="1">{% translate "Quit" %}</button></form>
       {% endif %}
       <button type="button" class="btn hidden max-md:block" data-toggle-board data-board-label="{% translate 'Tributes' %}" data-story-label="{% translate 'Story' %}">{% translate "Tributes" %}</button>
-      <form method="post" action="{% url 'next_round' %}">{% csrf_token %}
+      <form method="post" action="{% url 'next_round' %}" id="next-round">{% csrf_token %}
         <button type="submit" class="btn btn-main" {% if round_waiting %}disabled{% endif %}>{{ main_button }}</button>
       </form>
     </footer>
