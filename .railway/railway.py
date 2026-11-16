@@ -41,7 +41,6 @@ def main(ctx=None):
         # Railway switches traffic once /health/ answers (it checks the database too).
         healthcheck="/health/",
         healthcheckTimeout=120,
-        domains=[{"domain": DOMAIN, "port": PORT}],
         deploy={"restartPolicyType": "ON_FAILURE", "restartPolicyMaxRetries": 5},
         env={
             "DATABASE_URL": db.env.DATABASE_URL,

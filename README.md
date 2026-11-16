@@ -90,7 +90,7 @@ The Railway project is described in `.railway/railway.py` (Railway Infrastructur
 - the `web` service, built from this repository's `main` branch with the `Dockerfile`;
 - the `postgres` database;
 - the `photos` bucket, private, in the `iad` region (US East);
-- the custom domain `yearlygames.maximetoussaint.com`.
+- no domain: Railway configuration cannot register custom domains (see Deploying).
 
 The service gets the database URL and the bucket credentials as references, so Railway fills them in. Railway does not read the file during deploys: the CLI compares it with the project and applies the difference after you confirm. `make test` checks that the file compiles to the expected settings, without contacting Railway.
 
@@ -108,7 +108,7 @@ The container keeps nothing on disk: game data is in Postgres and photos are in 
    ```
    Production refuses to start without it, so the first deploy after `make infra-apply` fails until this is set. Setting it starts a new deploy.
 
-The site lives at **https://yearlygames.maximetoussaint.com**. The domain is declared in `.railway/railway.py` (`DOMAIN`), which also sets `DJANGO_ALLOWED_HOSTS` to it, so the two cannot drift apart. The domain routes to port 8000, the port the file pins with `PORT` and that gunicorn binds. To change the address, edit `DOMAIN` and push. A `*.up.railway.app` domain is optional (`railway domain --service web`); generated domains are not part of the IaC file, and the app allows one automatically.
+The site lives at **https://yearlygames.maximetoussaint.com**. `.railway/railway.py` sets `DJANGO_ALLOWED_HOSTS` from `DOMAIN`. Railway configuration cannot register a custom domain, so after the first apply add it by hand: `railway domain yearlygames.maximetoussaint.com --service web --port 8000`, and add the DNS records it prints. The port is the one the file pins with `PORT` and that gunicorn binds. A `*.up.railway.app` domain is optional (`railway domain --service web`); generated domains are not part of the IaC file, and the app allows one automatically.
 
 Later changes to the infrastructure: edit `.railway/railway.py` and push to `django-version`. CI applies it (see below). To preview first, run `make infra-plan`. All the `infra-*` targets refuse to run unless this folder is linked to `the-yearly-games`. That matters because a parent folder (even your home folder) may be linked to another project, and plan and apply act on whatever project is linked.
 

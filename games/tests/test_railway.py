@@ -68,9 +68,10 @@ class RailwayConfigTests(SimpleTestCase):
         # Only plain settings are written in the file, never a secret value.
         self.assertEqual(literals, {"AWS_S3_ADDRESSING_STYLE", "PORT", "DJANGO_ALLOWED_HOSTS"})
 
-    def test_the_site_answers_on_its_domain_and_port(self):
+    def test_the_site_allows_its_domain_and_binds_the_port(self):
         domain = "yearlygames.maximetoussaint.com"
-        self.assertEqual(self.web["networking"]["customDomains"], {domain: {"port": 8000}})
+        # Railway configuration cannot register custom domains, so none is declared in the file.
+        self.assertNotIn("customDomains", self.web.get("networking", {}))
         variables = self.web["variables"]
         self.assertEqual(variables["DJANGO_ALLOWED_HOSTS"], {"type": "literal", "value": domain})
         # The domain routes to the port gunicorn binds (gunicorn.conf.py reads PORT).
