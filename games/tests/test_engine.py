@@ -461,3 +461,105 @@ class EngineTests(TestCase):
         arena, tributes = self.arena_with_story()
         arena.ask = lambda decision: self.fail("a living Gamemaker was asked to shield")
         self.assertIsNone(ask_shield(arena, tributes[1], self.catalogue.arena_events[0]))
+
+    # ---------- trust, chases, acts, rumours, raids and the fallen vote ----------
+    def test_staying_loyal_when_betrayal_was_possible_makes_you_trusted(self):
+        from games.engine.encounters import ally_moment
+        from games.engine.state import TRUSTED
+
+        arena, tributes = self.arena_with_story()  # 6 tributes: betrayal is on the table
+        tributes[2].alliance = tributes[4].alliance = 1
+        arena.choices_left, arena.ask = 5, lambda decision: 0
+        ally_moment(arena, tributes[2], tributes[4])
+        self.assertTrue(has_tag(tributes[2], TRUSTED))
+        self.assertEqual(arena.log[-2].line.group, "reputation.trusted")
+
+    def test_a_spotted_tribute_can_be_let_go(self):
+        from games.engine.encounters import face_to_face
+
+        groups = set()
+        for seed in range(300):
+            arena, tributes = self.arena_with_story()
+            arena.dice, arena.choices_left = Dice(seed), 5
+            arena.ask = lambda decision: 2 if decision.question == "meeting" else 1  # slip away; let go
+            face_to_face(arena, tributes[2], tributes[4])
+            groups.update(entry.line.group for entry in arena.log)
+            if "encounter.spotted_slipping" in groups:
+                break
+        self.assertIn("encounter.lets_go", groups)
+        self.assertTrue(tributes[2].alive and tributes[4].alive)
+
+    def test_the_acts_are_told_once_and_look_back(self):
+        from games.engine.beats import acts
+        from games.engine.state import add_debt
+
+        arena, tributes = self.arena_with_story()
+        tributes[0].kills = 2
+        tributes[4].alive = tributes[5].alive = False
+        add_debt(tributes[1], tributes[0])
+        acts(arena)
+        acts(arena)
+        groups = [entry.line.group for entry in arena.log]
+        self.assertEqual(groups.count("act.manhunt"), 1)
+        self.assertEqual(groups.count("act.final_four"), 1)
+        self.assertIn("endgame.debt", groups)
+        self.assertTrue(has_tag(tributes[0], FEARED))
+
+    def test_the_manhunt_waits_for_a_first_kill(self):
+        from games.engine.beats import acts
+
+        arena, _tributes = self.arena_with_story()
+        acts(arena)
+        self.assertNotIn("act.manhunt", [entry.line.group for entry in arena.log])
+
+    def test_a_night_remembers_the_rumour_of_its_day(self):
+        arena = self.play_rounds(lambda dice, decision: 0, rounds=2)  # Bloodbath, Day 1
+        rumour = arena.rumour
+        self.assertTrue(rumour)
+        play_next_round(arena)  # Night 1
+        self.assertEqual(arena.rumour, rumour)
+
+    def test_an_alliance_leader_is_its_deadliest_member(self):
+        from games.engine.state import alliance_leader
+
+        arena, tributes = self.arena_with_story()
+        for t in tributes[2:5]:
+            t.alliance = 1
+        tributes[3].kills = 2
+        self.assertIs(alliance_leader(arena, 1), tributes[3])
+
+    def test_a_leader_decides_on_a_raid(self):
+        from games.engine import beats
+
+        asked = []
+        for seed in range(100):
+            arena, tributes = self.arena_with_story()
+            tributes[0].alliance = tributes[2].alliance = 1
+            tributes[1].alliance = tributes[3].alliance = 2
+            arena.dice, arena.choices_left = Dice(seed), 5
+            arena.ask = lambda decision: asked.append(decision) or 0
+            beats.alliance_raid(arena)
+            if asked:
+                break
+        self.assertEqual(asked[0].question, "raid")
+        self.assertIn("alliance.raid", [entry.line.group for entry in arena.log])
+
+    def test_the_fallen_vote_on_the_disaster(self):
+        from games.engine.beats import fallen_vote
+
+        arena, tributes = self.arena_with_story()
+        for t in tributes[:3]:
+            t.alive = False
+        events = self.catalogue.arena_events[:3]
+        answers = iter([1, 1, 0])
+        asked = []
+
+        def ask(decision):
+            asked.append(decision)
+            return next(answers)
+
+        arena.ask = ask
+        fallen_vote(arena, tributes[:3], events)
+        self.assertEqual([d.vote_number for d in asked], [1, 2, 3])
+        intro = arena.catalogue.intro(events[1])
+        self.assertIn(intro, [entry.line for entry in arena.log])

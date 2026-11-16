@@ -1,5 +1,6 @@
 """The flow of the Games: the Bloodbath, then days and nights until one tribute is left."""
 
+from .beats import acts, alliance_raid, announce_rumour, fallen_vote, rumour_effects, rumour_of_today
 from .catalogue import ARMOR, FOOD, GEAR, HEALING, TRAP, WEAPON
 from .combat import fight
 from .encounters import ally_moment, meet_someone
@@ -153,6 +154,8 @@ def start_of_day(arena):
         if not arena.feast_happened and arena.catalogue.feast:
             pool.append(arena.catalogue.feast)
         events = dice.shuffle(pool)[:3]
+        if len(fallen_in_room) >= 2 and dice.chance(0.5):  # the fallen vote together
+            return fallen_vote(arena, fallen_in_room, events)
         decision = Decision(
             gamemaker, "gamemaker", len(events), sponsor=gamemaker, option_events=tuple(events),
             for_whole_arena=True,
@@ -224,9 +227,10 @@ def everyones_turn(arena, is_night):
             "berries": 4,
             "quiet": 10 if under_pressure else 25,
         }
-        for turn_name, change in GOAL_EFFECTS.get(tribute.goal, {}).items():
-            if turn_weights[turn_name]:  # 0 means this turn is not possible (no ally, no items)
-                turn_weights[turn_name] = max(0, turn_weights[turn_name] + change)
+        for effects in [GOAL_EFFECTS.get(tribute.goal, {}), *rumour_effects(arena, tribute)]:
+            for turn_name, change in effects.items():
+                if turn_weights[turn_name]:  # 0 means this turn is not possible (no ally, no items)
+                    turn_weights[turn_name] = max(0, turn_weights[turn_name] + change)
         turn = list(turn_weights)[dice.weighted_index(list(turn_weights.values()))]
 
         if turn == "meet_someone":
@@ -321,9 +325,14 @@ def play_next_round(arena):
                 tribute.alliance = 0
             arena.add_to_story("bad", arena.line("phase.alliances_shatter"))
 
-        if not is_night:
+        acts(arena)
+        if is_night:
+            arena.rumour = rumour_of_today(arena)
+        else:
+            announce_rumour(arena)
             choose_goals(arena)
             start_of_day(arena)
+            alliance_raid(arena)
         everyones_turn(arena, is_night)
 
         # Nobody died late in the game: the Gamemakers step in so the Games always end.

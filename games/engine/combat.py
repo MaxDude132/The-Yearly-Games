@@ -31,9 +31,15 @@ def fighting_strength(arena, tribute):
         arena.add_to_story("bad", arena.line("combat.weapon_breaks"), a=tribute, item=weapon)
         remove_item(tribute, weapon)
         weapon = None
+    return arena.dice.random() + strength_bonus(tribute, has_weapon=weapon is not None)
+
+
+def strength_bonus(tribute, has_weapon=None):
+    """What a tribute adds to their fighting roll: weapon, armour, reputation, minus wounds."""
+    if has_weapon is None:
+        has_weapon = find_item(tribute, WEAPON) is not None
     return (
-        arena.dice.random()
-        + (WEAPON_BONUS if weapon else 0)
+        (WEAPON_BONUS if has_weapon else 0)
         + (ARMOR_BONUS if find_item(tribute, ARMOR) else 0)
         - (WOUND_PENALTY if tribute.wounded else 0)
         + (FEARED_BONUS if has_tag(tribute, FEARED) else 0)

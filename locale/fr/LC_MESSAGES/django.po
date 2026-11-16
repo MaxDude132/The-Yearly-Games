@@ -232,3 +232,33 @@ msgstr "Pas de pari"
 
 msgid "Bets"
 msgstr "Paris"
+
+msgid "leader"
+msgstr "chef"
+
+msgid "Trusted"
+msgstr "Digne de confiance"
+
+msgid "The fallen vote: %(number)s of %(total)s"
+msgstr "Vote des morts : %(number)s sur %(total)s"
+
+msgid "%(debtor)s owes %(benefactor)s a life."
+msgstr "%(debtor)s doit la vie à %(benefactor)s."
+
+msgid "In a fight, %(name)s would likely have the upper hand."
+msgstr "Dans un combat, %(name)s aurait sans doute l'avantage."
+
+msgid "In a fight, %(name)s would likely be at a disadvantage."
+msgstr "Dans un combat, %(name)s serait sans doute désavantagé."
+
+msgid "A fight between them would be close."
+msgstr "Un combat entre eux serait serré."
+
+msgid "Today's rumour favours scavenging."
+msgstr "La rumeur du jour favorise la fouille."
+
+msgid "Today's rumour favours hiding, and hunters will find more prey."
+msgstr "La rumeur du jour favorise ceux qui se cachent, et les chasseurs trouveront plus de proies."
+
+msgid "Today's rumour favours staying with allies."
+msgstr "La rumeur du jour favorise ceux qui restent avec leurs alliés."

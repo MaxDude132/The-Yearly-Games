@@ -7,6 +7,7 @@ from .state import (
     FEARED,
     HIDDEN,
     MERCIFUL,
+    TRUSTED,
     add_grudge,
     add_tag,
     find_item,
@@ -30,6 +31,7 @@ FEARED_SOUGHT = 0.2  # chance a tribute goes looking for a feared rival instead 
 HIDDEN_SKIPPED = 0.5  # chance a sleeper who hid well is walked past at night
 COLD_HANDSHAKE = 0.4  # chance an alliance with a known betrayer falls through
 MERCY_WINS_OVER = 0.5  # chance a refusal turns into a yes when the offer comes from someone known for mercy
+CHASE_WEIGHTS = [70, 30]  # the tribute who spots someone sneaking off: follow them, or let them go
 
 
 def meet_someone(arena, tribute, busy, is_night):
@@ -108,7 +110,10 @@ def face_to_face(arena, tribute, other):
         offer_alliance(arena, tribute, other)
     elif arena.dice.chance(SPOTTED_WHILE_SLIPPING):
         arena.add_to_story("bad", arena.line("encounter.spotted_slipping"), a=tribute, b=other)
-        fight(arena, other, tribute, CHASE_EDGE)
+        if arena.decide(other, "chase", CHASE_WEIGHTS, a=other, b=tribute) == 0:
+            fight(arena, other, tribute, CHASE_EDGE)
+        else:
+            arena.add_to_story("", arena.line("encounter.lets_go"), a=other, b=tribute)
     else:
         arena.add_to_story("", arena.line("encounter.slips_away"), a=tribute, b=other)
 
@@ -121,8 +126,13 @@ def offer_alliance(arena, tribute, other):
     elif tribute.district == other.district:
         weights = [80, 15, 5]
     answer = arena.decide(other, "alliance_offer", weights, a=tribute, b=other)
-    if answer == 1 and has_tag(tribute, MERCIFUL) and arena.dice.chance(MERCY_WINS_OVER):
-        arena.add_to_story("team", arena.line("encounter.mercy_wins_over"), a=tribute, b=other)
+    persuasion = (
+        "encounter.mercy_wins_over" if has_tag(tribute, MERCIFUL)
+        else "encounter.trust_wins_over" if has_tag(tribute, TRUSTED)
+        else None
+    )  # fmt: skip
+    if answer == 1 and persuasion and arena.dice.chance(MERCY_WINS_OVER):
+        arena.add_to_story("team", arena.line(persuasion), a=tribute, b=other)
         answer = 0
 
     # Whoever already has an alliance brings the other one in.
@@ -166,6 +176,8 @@ def ally_moment(arena, tribute, ally):
         elif tributes_left <= 5:
             weights = [65, 35]
         choice = arena.decide(tribute, "loyalty", weights, a=tribute, b=ally)
+        if choice == 0 and add_tag(tribute, TRUSTED):  # loyal when betrayal was on the table
+            arena.add_to_story("team", arena.line("reputation.trusted"), a=tribute, b=ally)
     if choice == 1:
         add_tag(tribute, BETRAYER)
         tribute.alliance = 0

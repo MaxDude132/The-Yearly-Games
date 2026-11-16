@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from .catalogue import Item, Line
 from .memory import remember_kill
 
-FEARED, HIDDEN, BETRAYER, MERCIFUL = "feared", "hidden", "betrayer", "merciful"
+FEARED, HIDDEN, BETRAYER, MERCIFUL, TRUSTED = "feared", "hidden", "betrayer", "merciful", "trusted"
 FEARED_AFTER_KILLS = 3
 
 # Who votes for an absent tribute facing a big decision (Game.Voters in the database).
@@ -30,7 +30,7 @@ class Tribute:
     items: list[Item] = field(default_factory=list)
     alliance: int = 0  # 0 means no alliance; the same number means the same alliance
     grudges: list[int] = field(default_factory=list)  # ids of tributes this one wants revenge on
-    tags: list[str] = field(default_factory=list)  # reputation: FEARED, HIDDEN, BETRAYER, MERCIFUL
+    tags: list[str] = field(default_factory=list)  # reputation: FEARED, HIDDEN, BETRAYER, MERCIFUL, TRUSTED
     debts: list[int] = field(
         default_factory=list
     )  # ids of tributes who spared this one: they owe them a life
@@ -109,6 +109,7 @@ class Arena:
         self.voters = voters
         self.no_conflict_votes = no_conflict_votes
         self.votes_left = 0  # votes still allowed this round
+        self.rumour = ""  # what the arena whispers today (see rounds.announce_rumour)
 
     # ---------- story ----------
 
@@ -294,3 +295,13 @@ def add_tag(tribute, tag):
 def remove_tag(tribute, tag):
     if tag in tribute.tags:
         tribute.tags.remove(tag)
+
+
+def alliance_members(arena, alliance):
+    return [t for t in arena.living() if alliance and t.alliance == alliance]
+
+
+def alliance_leader(arena, alliance):
+    """An alliance is led by its deadliest member (the first in the roster if tied)."""
+    members = alliance_members(arena, alliance)
+    return max(members, key=lambda t: (t.kills, -t.id)) if members else None

@@ -13,9 +13,10 @@ from django.views.decorators.http import require_GET, require_POST
 
 from games import roster as roster_tools
 from games import services
+from games.engine.combat import strength_bonus
 from games.engine.dice import Dice
 from games.engine.rounds import is_night_round
-from games.engine.state import holds_grudge, same_alliance
+from games.engine.state import alliance_leader, holds_grudge, owes_life, same_alliance
 from games.models import Game
 from games.render import Translator, current_language, display_name
 from games.styles import STATUS_PILLS, story_classes
@@ -166,6 +167,8 @@ def _card(row, tribute, arena, translator, names):
         details.append(_goal_labels()[tribute.goal])
     if tribute.alliance:
         alliance = f"{escape(_('Alliance'))} {tribute.alliance}"
+        if tribute.alive and alliance_leader(arena, tribute.alliance) is tribute:
+            alliance += f" ({escape(_('leader'))})"
         details.append(mark_safe(f'<span class="text-moon">{alliance}</span>'))
     if tribute.kills:
         details.append(f"{tribute.kills} {_('kills')}")
@@ -194,7 +197,11 @@ def _decision_context(decision, rows, translator, names, game, arena):
     if decision is None:
         return None
     row = rows[decision.tribute.id]
-    if decision.vote_for:
+    if decision.vote_total and not decision.vote_for:
+        label = _("The fallen vote: %(number)s of %(total)s") % {
+            "number": decision.vote_number, "total": decision.vote_total,
+        }  # fmt: skip
+    elif decision.vote_for:
         label = _("Vote %(number)s of %(total)s, for %(name)s") % {
             "number": decision.vote_number, "total": decision.vote_total, "name": names[decision.vote_for.id],
         }  # fmt: skip
@@ -269,12 +276,21 @@ def _decision_facts(decision, arena, translator, names):
                     )
             if me.district == other.district:
                 relations.append(_("Same district."))
+            for debtor, benefactor in ((me, other), (other, me)):
+                if owes_life(debtor, benefactor):
+                    relations.append(
+                        _("%(debtor)s owes %(benefactor)s a life.")
+                        % {"debtor": names[debtor.id], "benefactor": names[benefactor.id]}
+                    )
+            relations.append(_fight_hint(me, other, names))
         if me.alliance:
             size = len([t for t in arena.living() if t.alliance == me.alliance])
             relations.append(
                 _("%(name)s is in an alliance of %(count)s.") % {"name": names[me.id], "count": size}
             )
     relations.append(_("Tributes left: %(count)s") % {"count": len(arena.living())})
+    if decision.question == "goal" and arena.rumour:
+        relations.append(_rumour_hints()[arena.rumour])
     return {"people": people, "relations": relations}
 
 
@@ -370,7 +386,8 @@ def _bet_form(game, arena, decision, rows, names):
 # Story lines worth repeating in the recap: the moments where the story turned.
 RECAP_GROUPS = (
     "alliance.betrayal", "combat.spared", "combat.debt_repaid", "reputation.feared", "arena.shielded",
-    "bounty.placed", "encounter.mercy_wins_over", "encounter.cold_handshake",
+    "bounty.placed", "encounter.mercy_wins_over", "encounter.cold_handshake", "encounter.trust_wins_over",
+    "reputation.trusted", "act.manhunt", "alliance.raid", "arena.fallen_vote",
 )  # fmt: skip
 
 
@@ -391,4 +408,26 @@ def _recap(arena, translator, name_of):
         "deadliest": name_of(deadliest.id) if deadliest.kills else None,
         "deadliest_kills": deadliest.kills,
         "moments": moments,
+    }
+
+
+# ---------- hints in the pop-up ----------
+FIGHT_HINT_MARGIN = 0.2  # about the bonus of a weapon: enough to call a fight one-sided
+
+
+def _fight_hint(me, other, names):
+    """In plain words, who would likely win a fight (luck still decides)."""
+    gap = strength_bonus(me) - strength_bonus(other)
+    if gap >= FIGHT_HINT_MARGIN:
+        return _("In a fight, %(name)s would likely have the upper hand.") % {"name": names[me.id]}
+    if gap <= -FIGHT_HINT_MARGIN:
+        return _("In a fight, %(name)s would likely be at a disadvantage.") % {"name": names[me.id]}
+    return _("A fight between them would be close.")
+
+
+def _rumour_hints():  # a function, so the hints follow the viewer's language
+    return {
+        "supplies": _("Today's rumour favours scavenging."),
+        "hunters": _("Today's rumour favours hiding, and hunters will find more prey."),
+        "storm": _("Today's rumour favours staying with allies."),
     }

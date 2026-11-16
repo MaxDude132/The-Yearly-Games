@@ -1,9 +1,9 @@
 # Improvement proposals: more interactive, bigger consequences
 
-Status: draft for discussion. Nothing here is implemented.
+Status: every proposal is implemented (see the **Implemented** line under each). "Where the game was" below describes the game before this work.
 Each proposal has an ID so we can refer to it ("drop 2c", "do 1a first"). Edit the **Decision** line under each one.
 
-## Where the game is today
+## Where the game was (before this work)
 
 - **Decision points:** Bloodbath (rush, grab a pack, flee), meeting someone, alliance offer, sleeper encounter, loyalty or betrayal, berries, traps, final duel. Also sponsor gifts (fallen players) and Gamemaker disasters (any player in the room).
 - **Pacing:** `MAX_CHOICES_PER_ROUND = 2` in `games/engine/rounds.py`, about 15 to 20 pop-ups per game. Everyone present chooses only in the Bloodbath and the final duel.
@@ -15,7 +15,7 @@ Each proposal has an ID so we can refer to it ("drop 2c", "do 1a first"). Edit t
 ## 1. Choices carry forward
 
 ### 1a. Reputation tags
-**Mostly implemented**: tags `feared`, `hidden`, `betrayer` and `merciful` (table `TributeTag`), plus life debts (table `Debt`). `trusted` is not done. See `games/engine/state.py`, `combat.py`, `encounters.py`, `rounds.py`.
+**Implemented**: tags `feared`, `hidden`, `betrayer`, `merciful` and `trusted` (table `TributeTag`), plus life debts (table `Debt`). Trusted: stayed loyal when the loyalty question was asked; a trusted tribute's refused offer can turn into a yes (50%). See `games/engine/state.py`, `combat.py`, `encounters.py`, `rounds.py`.
 Per-tribute tags such as `Betrayer`, `Merciful`, `Feared`, `Trusted`, stored like `Grudge`. They change later odds: betraying an ally lowers everyone's alliance acceptance toward you, sparing someone creates a debt that can trigger a rescue later.
 - Touches: `games/models.py` (new table), `state.py`, `encounters.py`, new story lines.
 - Cost: medium. Risk: needs the balance rule (3a) to change.
@@ -37,13 +37,14 @@ Rushers start `Feared`, pack grabbers keep their item advantage, fleers start `H
 ## 2. Bigger, longer choices
 
 ### 2a. Multi-step encounters
-**Partly implemented**: a fight that would kill now asks the winner "finish or spare?" (question `mercy`). Sparing wounds the loser, takes one of their items, gives the winner the `merciful` tag and creates a debt (table `Debt`): if the debtor later wins a fight against the benefactor, they let them go once. A merciful tribute can win over a refused alliance (50%). Not done: "follow or let go?" after slipping away.
+**Implemented**: a fight that would kill now asks the winner "finish or spare?" (question `mercy`). Sparing wounds the loser, takes one of their items, gives the winner the `merciful` tag and creates a debt (table `Debt`): if the debtor later wins a fight against the benefactor, they let them go once. A merciful tribute can win over a refused alliance (50%). Also: a tribute who spots someone slipping away chooses to follow or let them go (question `chase`, dice 70/30).
 A meeting becomes a short chain. Attack, then "finish them or spare them?". Slip away, then "follow or let go?". Spare creates a debt (1a).
 - Touches: `encounters.py`, `questions.json`. The replay-from-seed design already supports more questions.
 - Cost: medium. Raises pop-up count unless the cap changes (see 2e).
 - Decision:
 
 ### 2b. Alliance leadership
+**Implemented**: the leader is the alliance's deadliest member (no extra data to store). On 30% of mornings with two alliances of 2 or more, a leader decides whether to raid another alliance (question `raid`, dice 40/60). A raid pairs members off for fights. The board marks the leader.
 The tribute who formed an alliance decides group choices (where to camp, whether to attack another alliance). Today an alliance is only a number on `Tribute`.
 - Touches: `Tribute` model, `encounters.py`, `rounds.py`.
 - Cost: high.
@@ -63,7 +64,7 @@ The Gamemaker picks an event and also who it hits, or who gets a mercy.
 - Decision:
 
 ### 2e. Pop-up budget
-**Implemented**: `choice_budget()` in `rounds.py`: 3 pop-ups per round, 4 with 8 or fewer left, 6 with 4 or fewer. About 40 choices per game in the simulation (was 28). Raising `MAX_CHOICES_PER_ROUND`, or making it depend on how important the moment is (finale-adjacent rounds get more, quiet days fewer). Needed if 2a to 2c are accepted.
+**Implemented**: `choice_budget()` in `rounds.py`: 3 pop-ups per round, 4 with 8 or fewer left, 6 with 4 or fewer. Daily goal pop-ups (up to 3 a day) and votes come on top. About 63 choices per game in the simulation with half the tributes in the room (was 28).
 - Decision:
 
 ## 3. Rebalance so choices can matter
@@ -83,10 +84,12 @@ Items carried, whether the other tribute is wounded, grudges between you, allian
 - Decision:
 
 ### 4b. Plain-word risk hints
+**Implemented**: when another tribute is involved, the pop-up says whether a fight would likely go their way, be close, or go against them. Based on weapon, armour, wounds and the feared tag (`strength_bonus` in `combat.py`), never on the dice.
 "Likely to win", "risky". No exact numbers.
 - Decision:
 
 ### 4c. Known locations or setups
+**Implemented as rumours** (`beats.py`): each morning the arena announces a rumour (supplies, hunters, storm) before players choose their goal. The goal that fits it works better that day and night, and the goal pop-up says which one. Full map locations were not built: rumours give the same "react to what the story told you" choice without a map.
 Tactics chosen against a situation the story already described (for example an ambush at a place mentioned earlier).
 - Cost: high. Needs locations in the model.
 - Decision:
@@ -94,7 +97,7 @@ Tactics chosen against a situation the story already described (for example an a
 ## 5. Involve the whole room
 
 ### 5a. Fallen players do more
-**Implemented (bounty)**: at the start of a day, 20% of the time a fallen player in the room picks one of 4 living tributes to put a bounty on; 2 random non-allies gain a grudge against them. Not done: the vote on a twist (the votes in 5b cover most of it).
+**Implemented**: at the start of a day, 20% of the time a fallen player in the room picks one of 4 living tributes to put a bounty on; 2 random non-allies gain a grudge against them. When 2 or more fallen players are in the room, half of the Gamemaker turns become a vote of all of them on the 3 offered disasters (tie: dice).
 Beyond sponsor gifts: vote on a twist, or place a bounty that creates grudges.
 - Decision:
 
@@ -122,7 +125,7 @@ Before each night, everyone picks who they think dies first. Keeps players engag
 ## 6. Story shape
 
 ### 6a. Acts
-**Not done.** Needs a design discussion: which beats, and how earlier choices shape them.
+**Implemented** (`beats.py`): two acts on top of the feast. With 12 left (once someone has killed), the Gamemakers name the deadliest tribute, who becomes feared. With 4 left, the story names the final four and recalls what links each pair: life debts, alliances, mutual grudges, betrayals.
 Fixed beats (opening, middle, feast, finale) whose content depends on earlier choices (who holds the best weapon, who has allies, who is `Feared`).
 - Decision:
 
@@ -167,3 +170,11 @@ Shows the decisive moments, for example "the choice that changed the game", pick
 ## Open questions
 
 None at the moment. Next step: pick the first items from the suggested order and turn them into a concrete implementation plan (data model changes, files, tests).
+
+## Balance after all proposals
+
+Measured by `make test` (4000 simulated games per habit, half the tributes in the room):
+- Votes off: players in the room win 48.1% (random answers), 48.8% (always first option), 48.2% (always middle), 48.5% (always last). The test allows 46% to 54%.
+- Votes on, fair play on: 50.3% (the dead), 51.6% (past winners), 52.2% (both), 51.8% (everyone).
+- Bloodbath options win about equally: 33.9 / 33.5 / 32.5%.
+- A gap of about 1.5 points against the room remains with votes off, whatever the habit, so it is structural rather than tied to one choice. Removing the living Gamemaker's shield closed part of it. The room never has an edge.

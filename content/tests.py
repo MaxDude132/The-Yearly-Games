@@ -10,9 +10,14 @@ from games.engine.rounds import BOND_GROUPS
 from games.services import load_catalogue
 
 LANGUAGES = [code for code, _name in settings.LANGUAGES]
+NEW_GROUPS = [
+    "reputation.trusted", "encounter.trust_wins_over", "encounter.lets_go", "act.manhunt", "act.final_four",
+    "endgame.debt", "endgame.allies", "endgame.grudge", "rumour.supplies", "rumour.hunters", "rumour.storm",
+    "alliance.raid", "alliance.lies_low", "arena.fallen_vote",
+]  # fmt: skip
 QUESTIONS_THE_ENGINE_ASKS = {
     "cornucopia", "meeting", "alliance_offer", "sleeper", "loyalty", "trap", "berries", "final_duel",
-    "sponsor", "gamemaker", "mercy", "shield", "goal", "bounty",
+    "sponsor", "gamemaker", "mercy", "shield", "goal", "bounty", "chase", "raid",
 }  # fmt: skip
 PLACEHOLDER = re.compile(r"\{(\w+)\}")
 KNOWN_PLACEHOLDERS = {"a", "b", "item", "n", "names", "sponsor"}
