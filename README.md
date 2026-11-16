@@ -61,7 +61,7 @@ compose.yaml              local Postgres and S3 server, for `make test-postgres`
 scripts/                  predeploy.sh (Railway runs it before each deploy), create_local_bucket.py
 Dockerfile                the production image Railway builds
 .railway/railway.py       the Railway project as code: the web service, its Postgres and the photo bucket
-.github/workflows/ci.yml  CI: lint and tests on every push and pull request, then the Railway apply (django-version)
+.github/workflows/ci.yml  CI: lint and tests on every push and pull request, then the Railway apply (main)
 gunicorn.conf.py          the production web server
 ```
 
@@ -90,7 +90,7 @@ The Railway project is described in `.railway/railway.py` (Railway Infrastructur
 - the `web` service, built from this repository's `main` branch with the `Dockerfile`;
 - the `postgres` database;
 - the `photos` bucket, private, in the `iad` region (US East);
-- no domain: Railway configuration cannot register custom domains (see Deploying).
+- the `postgres-volume` disk (50 GB), and the custom domain `yearlygames.maximetoussaint.com`.
 
 The service gets the database URL and the bucket credentials as references, so Railway fills them in. Railway does not read the file during deploys: the CLI compares it with the project and applies the difference after you confirm. `make test` checks that the file compiles to the expected settings, without contacting Railway.
 
@@ -108,11 +108,11 @@ The container keeps nothing on disk: game data is in Postgres and photos are in 
    ```
    Production refuses to start without it, so the first deploy after `make infra-apply` fails until this is set. Setting it starts a new deploy.
 
-The site lives at **https://yearlygames.maximetoussaint.com**. `.railway/railway.py` sets `DJANGO_ALLOWED_HOSTS` from `DOMAIN`. Railway configuration cannot register a custom domain, so after the first apply add it by hand: `railway domain yearlygames.maximetoussaint.com --service web --port 8000`, and add the DNS records it prints. The port is the one the file pins with `PORT` and that gunicorn binds. A `*.up.railway.app` domain is optional (`railway domain --service web`); generated domains are not part of the IaC file, and the app allows one automatically.
+The site lives at **https://yearlygames.maximetoussaint.com**. `.railway/railway.py` declares the domain (`DOMAIN`) and sets `DJANGO_ALLOWED_HOSTS` from it. Railway configuration cannot register a new custom domain: to change the address, add it in the dashboard, run `railway config pull`, and update `DOMAIN`. The domain routes to the port the file pins with `PORT` and that gunicorn binds. A `*.up.railway.app` domain is optional (`railway domain --service web`); generated domains are not part of the IaC file, and the app allows one automatically.
 
-Later changes to the infrastructure: edit `.railway/railway.py` and push to `django-version`. CI applies it (see below). To preview first, run `make infra-plan`. All the `infra-*` targets refuse to run unless this folder is linked to `the-yearly-games`. That matters because a parent folder (even your home folder) may be linked to another project, and plan and apply act on whatever project is linked.
+Later changes to the infrastructure: edit `.railway/railway.py` and push to `main`. CI applies it (see below). To preview first, run `make infra-plan`. All the `infra-*` targets refuse to run unless this folder is linked to `the-yearly-games`. That matters because a parent folder (even your home folder) may be linked to another project, and plan and apply act on whatever project is linked.
 
-**CI** (`.github/workflows/ci.yml`): every push to any branch and every pull request runs two jobs in parallel, `make lint` and `make test`. On a push to `django-version`, once both pass, a third job runs `make infra-apply-ci`, which applies `.railway/railway.py` to Railway without asking. A push that changes nothing in the file applies nothing. The apply refuses destructive changes, such as removing the bucket, the database or a variable, so the run fails instead. Apply those by hand with `make infra-apply`, which shows them and asks. Runs never overlap: a new push waits for the running apply.
+**CI** (`.github/workflows/ci.yml`): every push to any branch and every pull request runs two jobs in parallel, `make lint` and `make test`. On a push to `main`, once both pass, a third job runs `make infra-apply-ci`, which applies `.railway/railway.py` to Railway without asking. A push that changes nothing in the file applies nothing. The apply refuses destructive changes, such as removing the bucket, the database or a variable, so the run fails instead. Apply those by hand with `make infra-apply`, which shows them and asks. Runs never overlap: a new push waits for the running apply.
 
 To set it up once, after `make railway-init`:
 1. In Railway, open the project's **Settings > Tokens** and create a project token for the `production` environment.

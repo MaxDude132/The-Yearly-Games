@@ -1,6 +1,6 @@
 # CI for The Yearly Games.
 #   lint, test  every push to any branch, and every pull request
-#   apply       after both pass, on a push to django-version: applies .railway/railway.py to Railway
+#   apply       after both pass, on a push to main: applies .railway/railway.py to Railway
 #
 # The apply needs one repository secret, RAILWAY_TOKEN: a Railway *project* token for the production
 # environment of the-yearly-games (Railway: project Settings > Tokens). A project token only reaches
@@ -48,7 +48,7 @@ jobs:
   apply:
     needs: [lint, test]
     # Only pushes to the infrastructure branch; pull requests and other branches stop after the tests.
-    if: github.event_name == 'push' && github.ref_name == 'django-version'
+    if: github.event_name == 'push' && github.ref_name == 'main'
     runs-on: ubuntu-latest
     # A GitHub environment records each apply and can require an approval (repository Settings > Environments).
     environment: railway-production

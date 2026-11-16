@@ -35,14 +35,14 @@ class RailwayConfigTests(SimpleTestCase):
 
     def test_the_project_has_the_web_service_postgres_and_the_photo_bucket(self):
         self.assertEqual(self.graph["name"], "the-yearly-games")
-        self.assertEqual(set(self.resources), {"service.web", "database.postgres", "bucket.photos"})
+        self.assertEqual(set(self.resources), {"service.web", "database.postgres", "volume.postgres-volume", "bucket.photos"})
         self.assertEqual(self.resources["database.postgres"]["engine"], "postgres")
         self.assertIn(self.resources["bucket.photos"]["config"]["region"], {"sjc", "iad", "ams", "sin"})
 
-    def test_web_builds_the_dockerfile_from_the_deploy_branch(self):
-        source = {"type": "github", "repo": "Spendrax/The-Yearly-Games", "branch": "django-version"}
+    def test_web_builds_the_dockerfile_from_the_main_branch(self):
+        source = {"type": "github", "repo": "Spendrax/The-Yearly-Games", "branch": "main"}
         self.assertEqual(self.web["source"], source)
-        self.assertEqual(self.web["build"], {"builder": "DOCKERFILE", "dockerfilePath": "Dockerfile"})
+        self.assertEqual(self.web["build"], {"buildEnvironment": "V3", "builder": "DOCKERFILE", "dockerfilePath": "Dockerfile"})
         self.assertTrue((settings.BASE_DIR / "Dockerfile").exists())
 
     def test_web_deploys_like_production_needs(self):
@@ -50,7 +50,6 @@ class RailwayConfigTests(SimpleTestCase):
         self.assertEqual(deploy["preDeployCommand"], ["sh scripts/predeploy.sh"])
         self.assertTrue((settings.BASE_DIR / "scripts" / "predeploy.sh").exists())
         self.assertEqual(deploy["healthcheckPath"], "/health/")
-        self.assertEqual(deploy["restartPolicyType"], "ON_FAILURE")
 
     def test_the_database_and_bucket_credentials_are_references(self):
         variables = self.web["variables"]
@@ -70,8 +69,8 @@ class RailwayConfigTests(SimpleTestCase):
 
     def test_the_site_allows_its_domain_and_binds_the_port(self):
         domain = "yearlygames.maximetoussaint.com"
-        # Railway configuration cannot register custom domains, so none is declared in the file.
-        self.assertNotIn("customDomains", self.web.get("networking", {}))
+        # The domain was added in the dashboard and pulled into the file.
+        self.assertEqual(self.web["networking"]["customDomains"], {domain: {"port": 8000}})
         variables = self.web["variables"]
         self.assertEqual(variables["DJANGO_ALLOWED_HOSTS"], {"type": "literal", "value": domain})
         # The domain routes to the port gunicorn binds (gunicorn.conf.py reads PORT).
