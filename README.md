@@ -24,9 +24,10 @@ make dev            # http://localhost:8150, rebuilds the CSS and reloads the br
 make run            # the same server without the watcher
 make test           # includes thousands of simulated games
 make test-postgres  # the same tests on Postgres in Docker (port 5452), like production
+make docker-run     # the production image with Postgres and a local S3 server, on http://localhost:8160
 ```
 
-Locally the database is SQLite (`db.sqlite3`), nothing to install. Production uses Postgres.
+Locally the database is SQLite (`db.sqlite3`) and photos go to `media/`, nothing to install. Production uses Postgres and an S3 bucket.
 
 ## The code
 Django, with the game rules in plain Python (no database access inside the rules). The UI is Tailwind CSS v4 through django-tailwind.
@@ -56,8 +57,11 @@ games/
 theme/                    the django-tailwind app
   static_src/src/styles.css  Tailwind input: colours, fonts, animations, the button style
 locale/fr/                French interface text (buttons, labels)
-compose.yaml              a local Postgres for `make test-postgres` and `make docker-run`
-Dockerfile, railway.toml  the production image and its Railway settings (see Deploying)
+compose.yaml              local Postgres and S3 server, for `make test-postgres` and `make docker-run`
+scripts/                  predeploy.sh (Railway runs it before each deploy), create_local_bucket.py
+Dockerfile                the production image Railway builds
+.railway/railway.py       the Railway project as code: the web service, its Postgres and the photo bucket
+.github/workflows/ci.yml  CI: lint and tests on every push and pull request, then the Railway apply (django-version)
 gunicorn.conf.py          the production web server
 ```
 
@@ -82,17 +86,39 @@ A web request cannot wait for a player to tap. So a round is replayed from its s
 `make test` plays 5000 games with random answers and checks that every game ends with exactly one winner, no story line is missing text, and every tribute wins about equally often. It also checks that players in the room don't win more often than absent ones, whatever options they tend to pick: choices change the story, not the odds. Other tests cover the pages, the questions that pause a round, photos and languages.
 
 ### Deploying (Railway)
-Railway builds the `Dockerfile` and follows `railway.toml`. The build installs the dependencies and builds the CSS, translations and static files. Before each deploy goes live, `scripts/predeploy.sh` migrates the database and reloads the game content. Gunicorn then serves the app, and Railway waits for `/health/` before sending traffic to the new version.
+The Railway project is described in `.railway/railway.py` (Railway Infrastructure as Code, Python authoring, beta). It declares three resources:
+- the `web` service, built from this repository's `main` branch with the `Dockerfile`;
+- the `postgres` database;
+- the `photos` bucket, private, in the `iad` region (US East);
+- the custom domain `yearlygames.maximetoussaint.com`.
 
-One-time setup in the Railway dashboard:
-1. Create a project with a **Postgres** database and a service from this GitHub repo.
-2. In the service **Variables**:
-   - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}` (a reference to the database)
-   - `DJANGO_SECRET_KEY` = a long random string, e.g. from `uv run python -c "import secrets; print(secrets.token_urlsafe(50))"`
-   - `DJANGO_ALLOWED_HOSTS` = your custom domain, if you add one. The Railway domain is allowed automatically.
-3. Add a **Volume** to the service, mounted at `/data`. Uploaded photos live there (`/data/media`); without a volume they vanish on each deploy.
-4. In **Settings > Networking**, generate a domain.
+The service gets the database URL and the bucket credentials as references, so Railway fills them in. Railway does not read the file during deploys: the CLI compares it with the project and applies the difference after you confirm. `make test` checks that the file compiles to the expected settings, without contacting Railway.
 
-The app serves its own static files (WhiteNoise) and photos (Django), so it needs no separate web server. Railway allows only one deploy at a time on a service with a volume, so each deploy causes a few seconds of downtime.
+The build installs the dependencies and builds the CSS, translations and static files. Before each deploy goes live, `scripts/predeploy.sh` migrates the database and reloads the game content. Gunicorn then serves the app, and Railway waits for `/health/` before sending traffic to the new version.
 
-To try the production image locally against the Docker Postgres: `make docker-run` (http://localhost:8160).
+The container keeps nothing on disk: game data is in Postgres and photos are in the bucket, so the service needs no volume. The page links each photo with a signed URL that expires after an hour, because Railway buckets are always private. Static files (CSS, icons) are served by the app itself (WhiteNoise).
+
+**Once** (needs the [Railway CLI](https://docs.railway.com/cli), logged in with `railway login`):
+1. `make railway-init` creates the `the-yearly-games` project and links this folder to it.
+2. Check `BUCKET_REGION` in `.railway/railway.py` (`sjc`, `iad`, `ams` or `sin`). A bucket's region cannot change after it is created.
+3. `make infra-plan` shows what will be created: the service, the database and the bucket. `make infra-apply` creates them after you confirm.
+4. Set the one secret. The file declares it with `preserve()`, so its value stays in Railway and never in git, and piping it keeps it out of your shell history:
+   ```
+   uv run python -c "import secrets; print(secrets.token_urlsafe(50))" | railway variable set --service web --stdin DJANGO_SECRET_KEY
+   ```
+   Production refuses to start without it, so the first deploy after `make infra-apply` fails until this is set. Setting it starts a new deploy.
+
+The site lives at **https://yearlygames.maximetoussaint.com**. The domain is declared in `.railway/railway.py` (`DOMAIN`), which also sets `DJANGO_ALLOWED_HOSTS` to it, so the two cannot drift apart. The domain routes to port 8000, the port the file pins with `PORT` and that gunicorn binds. To change the address, edit `DOMAIN` and push. A `*.up.railway.app` domain is optional (`railway domain --service web`); generated domains are not part of the IaC file, and the app allows one automatically.
+
+Later changes to the infrastructure: edit `.railway/railway.py` and push to `django-version`. CI applies it (see below). To preview first, run `make infra-plan`. All the `infra-*` targets refuse to run unless this folder is linked to `the-yearly-games`. That matters because a parent folder (even your home folder) may be linked to another project, and plan and apply act on whatever project is linked.
+
+**CI** (`.github/workflows/ci.yml`): every push to any branch and every pull request runs two jobs in parallel, `make lint` and `make test`. On a push to `django-version`, once both pass, a third job runs `make infra-apply-ci`, which applies `.railway/railway.py` to Railway without asking. A push that changes nothing in the file applies nothing. The apply refuses destructive changes, such as removing the bucket, the database or a variable, so the run fails instead. Apply those by hand with `make infra-apply`, which shows them and asks. Runs never overlap: a new push waits for the running apply.
+
+To set it up once, after `make railway-init`:
+1. In Railway, open the project's **Settings > Tokens** and create a project token for the `production` environment.
+2. In GitHub, add it as the repository secret `RAILWAY_TOKEN` (**Settings > Secrets and variables > Actions**).
+3. Optional: under **Settings > Environments > railway-production** (created on the first run), add a required reviewer if you want to approve each apply.
+
+Production refuses to start without the Postgres URL or the bucket name, so a missing variable fails the deploy instead of losing data. The app works with any S3-compatible bucket, through the same `AWS_*` variables, if you ever move the photos elsewhere.
+
+To try the production image locally: `make docker-run` (http://localhost:8160) starts Postgres, a local S3 server ([RustFS](https://rustfs.com)) and the image, as on Railway. `make docker-down` stops them.

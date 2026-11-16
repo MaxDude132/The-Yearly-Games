@@ -8,14 +8,20 @@ MANAGE = uv run python manage.py
 POSTGRES_PORT ?= 5452
 POSTGRES_URL = postgres://yearly:yearly@localhost:$(POSTGRES_PORT)/yearly_games
 
-# The production image, run locally against the Docker Postgres.
+# The production image, run locally with the Docker Postgres and S3 server (compose.yaml).
 IMAGE ?= the-yearly-games
-DOCKER_PORT ?= 8160
+
+# Railway Infrastructure as Code (.railway/railway.py). `uv run` puts the project environment first on
+# PATH, so the CLI's python3 finds railway_sdk. Every target checks the linked project first: a parent
+# folder may be linked to another project, and plan/apply act on whatever project is linked.
+RAILWAY_PROJECT = the-yearly-games
+RAILWAY = uv run railway
 
 .DEFAULT_GOAL := help
 
 .PHONY: help install css migrate content messages setup dev run test lint format clean \
-	db-up db-down test-postgres docker-build docker-run
+	db-up db-down test-postgres docker-build docker-run docker-down \
+	railway-init railway-check infra-plan infra-apply infra-apply-ci ci
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -59,14 +65,36 @@ test-postgres: messages db-up ## Run the tests on the local Postgres, like produ
 docker-build: ## Build the production image (the one Railway builds)
 	docker build -t $(IMAGE) .
 
-docker-run: docker-build db-up ## Run the production image on http://localhost:$(DOCKER_PORT) with the local Postgres
-	docker run --rm -it -p $(DOCKER_PORT):8000 \
-		-e PORT=8000 \
-		-e DJANGO_SECRET_KEY=local-docker-only \
-		-e DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1 \
-		-e DJANGO_HTTPS=0 \
-		-e DATABASE_URL=postgres://yearly:yearly@host.docker.internal:$(POSTGRES_PORT)/yearly_games \
-		$(IMAGE) sh -c "python manage.py migrate && python manage.py load_content && exec gunicorn"
+docker-run: db-up ## Run the production image on http://localhost:8160 with the local Postgres and S3 server
+	docker compose up -d s3
+	uv run python scripts/create_local_bucket.py
+	docker compose --profile app up --build web
+
+docker-down: ## Stop everything compose.yaml started (keeps the data)
+	docker compose --profile app stop
+
+railway-init: ## Create the Railway project and link this folder to it (once)
+	railway init --name $(RAILWAY_PROJECT)
+
+railway-check: ## Fail unless this folder is linked to the $(RAILWAY_PROJECT) Railway project
+	@linked="$$(railway status --json 2>/dev/null | uv run python -c 'import json, sys; print(json.load(sys.stdin).get("name", ""))' 2>/dev/null)"; \
+	if [ "$$linked" != "$(RAILWAY_PROJECT)" ]; then \
+		printf 'This folder is linked to the Railway project "%s", not "%s".\nRun `make railway-init` (first time) or `railway link --project %s`.\n' "$$linked" "$(RAILWAY_PROJECT)" "$(RAILWAY_PROJECT)"; \
+		exit 1; \
+	fi
+
+infra-plan: railway-check ## Preview what .railway/railway.py would change in Railway (changes nothing)
+	$(RAILWAY) config plan
+
+infra-apply: railway-check ## Apply .railway/railway.py to Railway, after showing the plan and asking
+	$(RAILWAY) config apply
+
+# No --confirm-destructive on purpose: a change that would delete or detach something (the bucket,
+# the database, a variable) makes the apply fail, and then it has to be applied by hand with infra-apply.
+infra-apply-ci: railway-check ## (CI) Apply .railway/railway.py without asking; fails on destructive changes
+	$(RAILWAY) config apply --yes
+
+ci: lint test ## Everything CI checks before applying the infrastructure
 
 lint: ## Check the code style
 	uv run ruff check .

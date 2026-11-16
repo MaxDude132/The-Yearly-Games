@@ -11,6 +11,5 @@ media/
 staticfiles/
 theme/static/css/dist/
 **/*.mo
-node_modules/
-# Left over from the old JavaScript app, not part of the Django image.
-package.json
+.railway/
+.github/

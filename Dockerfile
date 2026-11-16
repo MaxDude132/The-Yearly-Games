@@ -1,4 +1,4 @@
-# The production image (Railway builds it from this file; see railway.toml).
+# The production image (Railway builds it from this file; see .railway/railway.py).
 # Two stages: "build" installs the dependencies and builds the CSS, translations and static files;
 # the final image only gets the results, without build tools or the Tailwind binary.
 
@@ -27,9 +27,10 @@ RUN uv sync --frozen --no-dev --no-install-project
 
 COPY . .
 
-# Production settings refuse to load without a secret and a Postgres URL. These values are only
-# used to build files; nothing connects to a database here.
+# Production settings refuse to load without a secret, a Postgres URL and a photo bucket. These values
+# are only used to build files; nothing connects to the database or the bucket here.
 RUN DJANGO_DEBUG=0 DJANGO_SECRET_KEY=build-only DATABASE_URL=postgres://build@localhost/build \
+    AWS_STORAGE_BUCKET_NAME=build-only \
     sh -c "python manage.py tailwind install \
         && python manage.py tailwind build \
         && python manage.py compilemessages --ignore=.venv \
@@ -45,15 +46,13 @@ ENV PATH=/app/.venv/bin:$PATH \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     DJANGO_DEBUG=0 \
-    DJANGO_MEDIA_ROOT=/data/media \
     PORT=8000
 
 WORKDIR /app
 COPY --from=build /app /app
 
-# Uploaded photos. On Railway, mount a volume at /data so they survive deploys.
-RUN mkdir -p /data/media && chown app:app /data/media
+# Nothing is written to disk at run time: data is in Postgres, photos in S3.
+USER app
 
 EXPOSE 8000
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["gunicorn"]

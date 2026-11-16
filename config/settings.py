@@ -1,7 +1,8 @@
 """Django settings for The Yearly Games.
 
 Local development needs no environment variables (SQLite, DEBUG on).
-Production (Railway, see Dockerfile and railway.toml) sets DJANGO_DEBUG=0, DJANGO_SECRET_KEY and DATABASE_URL.
+Production (Railway, see Dockerfile and .railway/railway.py) sets DJANGO_DEBUG=0, DJANGO_SECRET_KEY,
+DATABASE_URL and the AWS_* photo bucket variables.
 """
 
 import importlib.util
@@ -126,17 +127,46 @@ TAILWIND_STANDALONE_BINARY_VERSION = "v4.3.5"
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 # Production: WhiteNoise serves the collected files with hashed names and compression.
-STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
-        if DEBUG
-        else "whitenoise.storage.CompressedManifestStaticFilesStorage"
-    },
-}
-# Uploaded photos. On Railway this is a volume (see railway.toml), or they vanish on each deploy.
-MEDIA_URL = "media/"
-MEDIA_ROOT = Path(os.environ.get("DJANGO_MEDIA_ROOT", BASE_DIR / "media"))
+STATICFILES_BACKEND = (
+    "django.contrib.staticfiles.storage.StaticFilesStorage"
+    if DEBUG
+    else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+)
+
+# Uploaded photos.
+# Local: files in media/. Production: a private S3-compatible bucket (django-storages), a Railway bucket
+# declared in .railway/railway.py. The page links each photo with a signed URL that expires after an
+# hour, so the bucket never needs to be public.
+# Credentials come from AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, which django-storages reads itself.
+# AWS_S3_ENDPOINT_URL is for S3-compatible services (Railway, the local server); leave it empty for AWS.
+AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME", "")
+if AWS_STORAGE_BUCKET_NAME:
+    PHOTO_STORAGE = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": AWS_STORAGE_BUCKET_NAME,
+            "region_name": os.environ.get("AWS_S3_REGION_NAME") or None,
+            "endpoint_url": os.environ.get("AWS_S3_ENDPOINT_URL") or None,
+            # "virtual" (bucket name in the host name) for Railway buckets; empty lets boto3 choose,
+            # which means path-style URLs with a custom endpoint (what the local S3 server needs).
+            "addressing_style": os.environ.get("AWS_S3_ADDRESSING_STYLE") or None,
+            # AWS only accepts v4 signatures on buckets created since 2020.
+            "signature_version": "s3v4",
+            "file_overwrite": False,
+            "querystring_expire": 60 * 60,
+            # Photo names are random and never change, so browsers may keep them.
+            "object_parameters": {"CacheControl": "max-age=86400"},
+        },
+    }
+else:
+    PHOTO_STORAGE = {"BACKEND": "django.core.files.storage.FileSystemStorage"}
+
+if not DEBUG and not AWS_STORAGE_BUCKET_NAME:
+    raise RuntimeError("Production stores photos in S3: set AWS_STORAGE_BUCKET_NAME and the AWS credentials.")
+
+STORAGES = {"default": PHOTO_STORAGE, "staticfiles": {"BACKEND": STATICFILES_BACKEND}}
+MEDIA_URL = "media/"  # local only
+MEDIA_ROOT = BASE_DIR / "media"
 # Photos are shrunk on upload; this only limits what a phone camera may send.
 FILE_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = 16 * 1024 * 1024
