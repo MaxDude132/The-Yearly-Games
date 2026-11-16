@@ -1,0 +1,26 @@
+{% load static i18n tailwind_tags %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% translate "The Yearly Games" %}</title>
+  <meta name="description" content="{% translate "A yearly Hunger Games-style simulator for friends: random victor, choices that change the story." %}">
+  <meta name="theme-color" content="#101913">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <link rel="manifest" href="{% static 'games/manifest.webmanifest' %}">
+  <link rel="icon" href="{% static 'games/icons/icon.svg' %}" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="{% static 'games/icons/icon-192.png' %}">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Instrument+Sans:wght@400;600&display=swap">
+  {% tailwind_css %}
+</head>
+<body class="h-full bg-ground font-body text-base/[1.45] text-bone">
+  <div class="flex h-full flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+{% block body %}{% endblock %}
+  </div>
+  <script src="{% static 'games/app.js' %}" defer></script>
+</body>
+</html>

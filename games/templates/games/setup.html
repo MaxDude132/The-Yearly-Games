@@ -1,0 +1,39 @@
+{% extends "games/base.html" %}
+{% load i18n %}
+{% block body %}
+    <header class="flex items-center justify-between gap-4 border-b border-line px-4 py-3">
+      {% translate "The Yearly Games" as title %}{% include "games/_title.html" %}
+      <div class="flex flex-wrap items-center gap-2.5">{% include "games/_language.html" %}</div>
+    </header>
+    <main class="mx-auto flex w-full max-w-176 flex-col gap-4 overflow-y-auto p-4">
+      <p class="m-0 max-w-[65ch] text-moss">{% translate "One victor, chosen by luck. Tick who is in the room: they make their own choices, and the arena decides for everyone else. Each pair in the list is a district: they may enter as friends, rivals or strangers. Tap a circle to add a photo." %}</p>
+      <form method="post" action="{% url 'roster' %}" enctype="multipart/form-data">{% csrf_token %}
+        {# Pressing Enter in a name field uses the first button of the form, so that must be a plain save. #}
+        <button type="submit" name="action" value="save" class="sr-only" tabindex="-1" aria-hidden="true"></button>
+        <ol class="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(19rem,1fr))] gap-2 p-0">
+          {% for row in rows %}{% with tribute=row.tribute %}
+          <li class="flex items-center gap-2">
+            <span class="w-[1.9rem] text-xs text-moss tabular-nums">D{{ tribute.district }}</span>
+            <label class="inline-flex cursor-pointer rounded-full transition duration-100 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-gold active:translate-y-0.5 active:scale-98" title="{% translate 'Photo of' %} {% translate 'Tribute' %} {{ row.number }}">
+              {% include "games/_avatar.html" with letters="" %}
+              <input type="file" name="photo-{{ tribute.position }}" data-photo accept="image/*"
+                class="sr-only" aria-label="{% translate 'Photo of' %} {% translate 'Tribute' %} {{ row.number }}">
+            </label>
+            <input type="text" name="name-{{ tribute.position }}" value="{{ tribute.name }}" maxlength="30"
+              class="min-w-0 flex-1 rounded-md border border-line bg-panel px-3 py-2 placeholder:text-moss focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+              placeholder="{% translate 'Tribute' %} {{ row.number }}" aria-label="{% translate 'Tribute' %} {{ row.number }}">
+            <label class="flex items-center gap-1 text-sm whitespace-nowrap text-moss">
+              <input type="checkbox" name="here-{{ tribute.position }}" class="size-[1.1rem] accent-ember" {% if tribute.present %}checked{% endif %}>
+              {% translate "here" %}
+            </label>
+            <button type="submit" class="btn" name="action" value="remove-{{ tribute.position }}" aria-label="{% translate 'Remove' %} {{ row.number }}">×</button>
+          </li>
+          {% endwith %}{% endfor %}
+        </ol>
+        <div class="flex flex-wrap items-center gap-2.5">
+          <button type="submit" class="btn" name="action" value="add">{% translate "Add a tribute" %}</button>
+          <button type="submit" class="btn btn-main" name="action" value="start" {% if not can_start %}disabled{% endif %}>{% translate "Start the Games" %}</button>
+        </div>
+      </form>
+    </main>
+{% endblock %}

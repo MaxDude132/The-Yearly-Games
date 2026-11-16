@@ -1,0 +1,60 @@
+# Local stand-ins for the production services. Day-to-day development uses SQLite and media/ instead.
+#   make test-postgres  postgres only
+#   make docker-run     postgres + s3 + the production image (web)
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: yearly
+      POSTGRES_PASSWORD: yearly
+      POSTGRES_DB: yearly_games
+    ports:
+      - "5452:5432" # 5452 on the host, so it does not clash with other projects' databases
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yearly -d yearly_games"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  # An S3-compatible server standing in for the photo bucket.
+  s3:
+    image: rustfs/rustfs:1.0.6
+    environment:
+      RUSTFS_ACCESS_KEY: yearly-access
+      RUSTFS_SECRET_KEY: yearly-secret-key
+    ports:
+      - "9000:9000"
+      # The web service shares this service's network (see below), so its port is published here.
+      - "8160:8000"
+    volumes:
+      - s3-data:/data
+
+  # The production image. It shares the s3 network so that it and the browser both reach the bucket
+  # at localhost:9000: a signed photo URL only works with the host name it was signed for.
+  web:
+    build: .
+    profiles: [app]
+    network_mode: "service:s3"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      s3:
+        condition: service_started
+    environment:
+      PORT: "8000"
+      DJANGO_SECRET_KEY: local-docker-only
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      DJANGO_HTTPS: "0" # plain HTTP locally; Railway serves HTTPS
+      DATABASE_URL: postgres://yearly:yearly@host.docker.internal:5452/yearly_games
+      AWS_STORAGE_BUCKET_NAME: yearly-photos
+      AWS_ACCESS_KEY_ID: yearly-access
+      AWS_SECRET_ACCESS_KEY: yearly-secret-key
+      AWS_S3_ENDPOINT_URL: http://localhost:9000
+      AWS_S3_REGION_NAME: us-east-1
+    command: ["sh", "-c", "sh scripts/predeploy.sh && exec gunicorn"]
+
+volumes:
+  postgres-data:
+  s3-data:

@@ -1,0 +1,105 @@
+# French interface text for The Yearly Games.
+# The game content (story lines, items, questions) is not here: it lives in content/fixtures.
+msgid ""
+msgstr ""
+"Project-Id-Version: The Yearly Games\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-16 06:19+0000\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+msgid "Tribute"
+msgstr "Tribut"
+
+msgid "The Yearly Games"
+msgstr "Les Jeux annuels"
+
+msgid ""
+"A yearly Hunger Games-style simulator for friends: random victor, choices "
+"that change the story."
+msgstr ""
+"Un simulateur annuel de Hunger Games entre amis : un vainqueur choisi au "
+"hasard, des choix qui changent l'histoire."
+
+msgid "alive"
+msgstr "en vie"
+
+msgid "The tributes rise into the arena."
+msgstr "Les tributs montent dans l'arène."
+
+msgid "here"
+msgstr "présent"
+
+msgid "Really quit?"
+msgstr "Vraiment quitter ?"
+
+msgid "Quit"
+msgstr "Quitter"
+
+msgid "Tributes"
+msgstr "Tributs"
+
+msgid "Story"
+msgstr "Récit"
+
+msgid ""
+"One victor, chosen by luck. Tick who is in the room: they make their own "
+"choices, and the arena decides for everyone else. Each pair in the list is a "
+"district: they may enter as friends, rivals or strangers. Tap a circle to "
+"add a photo."
+msgstr ""
+"Un seul vainqueur, choisi par le hasard. Coche qui est dans la pièce : ces "
+"personnes font leurs propres choix, et l'arène décide pour les autres. "
+"Chaque paire de la liste forme un district : amis, rivaux ou inconnus, au "
+"hasard. Touche un cercle pour ajouter une photo."
+
+msgid "Photo of"
+msgstr "Photo de"
+
+msgid "Remove"
+msgstr "Retirer"
+
+msgid "Add a tribute"
+msgstr "Ajouter un tribut"
+
+msgid "Start the Games"
+msgstr "Lancer les Jeux"
+
+msgid "New game"
+msgstr "Nouvelle partie"
+
+msgid "Continue"
+msgstr "Continuer"
+
+msgid "Sound the gong"
+msgstr "Sonner le gong"
+
+msgid "dead"
+msgstr "mort"
+
+msgid "wounded"
+msgstr "blessure"
+
+msgid "District"
+msgstr "District"
+
+msgid "Alliance"
+msgstr "Alliance"
+
+msgid "kills"
+msgstr "victimes"
+
+msgid "Grudge against"
+msgstr "Rancune contre"
+
+msgid "Decides for the whole arena"
+msgstr "Décide pour toute l'arène"
+
+msgid "Decision for"
+msgstr "Décision pour"
+
+msgid "Fallen, still playing"
+msgstr "Hors jeu, mais toujours là"

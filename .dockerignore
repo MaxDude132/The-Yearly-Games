@@ -1,0 +1,15 @@
+# Keep the build context small and free of local data.
+.git/
+.venv/
+**/__pycache__/
+**/*.pyc
+.ruff_cache/
+.env
+**/.DS_Store
+db.sqlite3
+media/
+staticfiles/
+theme/static/css/dist/
+**/*.mo
+.railway/
+.github/

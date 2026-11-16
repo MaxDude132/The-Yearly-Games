@@ -1,0 +1,69 @@
+/* The Yearly Games: Tailwind input. `make css` (django-tailwind) builds theme/static/css/dist/styles.css from it.
+   Layout: a broadcast board. Story on the left, tribute board on the right, one big button at the bottom.
+   One dark theme on purpose (it is an arena at night). */
+
+@import "tailwindcss" source(none);
+
+/* Where class names are used. Python files are listed because some classes are picked there
+   (for example the colour of a story line). Write those classes out in full, never build them from parts. */
+@source "../../../games/templates";
+@source "../../../games/static/games/app.js";
+@source "../../../games/*.py";
+
+@theme {
+  --color-ground: #101913; /* page background */
+  --color-panel: #18241c; /* cards and buttons */
+  --color-pressed: #0c130e; /* a button being pressed */
+  --color-line: #2b3a30; /* borders */
+  --color-bone: #ece6d3; /* main text */
+  --color-moss: #8c9c8d; /* quiet text */
+  --color-ember: #f26a2e; /* main accent, danger */
+  --color-ember-dark: #c2501c;
+  --color-gold: #e6b84c; /* items, headings, the winner */
+  --color-blood: #e0524a; /* deaths */
+  --color-moon: #7aa7d9; /* night, alliances */
+
+  --font-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --font-body: "Instrument Sans", system-ui, sans-serif;
+
+  --animate-appear: appear 0.35s ease-out both; /* new story lines */
+  --animate-decision-in: decision-in 0.22s ease-out both; /* each new pop-up slides in */
+
+  @keyframes appear {
+    from { opacity: 0.2; transform: translateY(4px); }
+  }
+  @keyframes decision-in {
+    from { opacity: 0; transform: translateY(14px); }
+  }
+}
+
+@layer base {
+  html { color-scheme: dark; }
+  /* Every button lives in a small form: let the form vanish from the layout. */
+  form { display: contents; }
+  button:not(:disabled) { cursor: pointer; }
+}
+
+@layer components {
+  /* The one button style. .pressed is added by app.js and held briefly, so even a quick tap shows. */
+  .btn {
+    @apply rounded-md border border-line bg-panel px-3.5 py-2.5 text-bone;
+    @apply transition duration-100 ease-out [-webkit-tap-highlight-color:transparent];
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold;
+    @apply disabled:cursor-default disabled:opacity-45;
+  }
+  .btn:not(:disabled):active,
+  .btn.pressed {
+    @apply translate-y-0.5 scale-98 border-ember bg-pressed shadow-[inset_0_2px_6px_rgba(0,0,0,.6)];
+    @apply motion-reduce:translate-y-0 motion-reduce:scale-100;
+  }
+  /* The big orange button: Start, Sound the gong, Continue. */
+  .btn-main {
+    @apply flex-1 border-ember bg-ember px-5 py-3.5 text-[#1a0d05];
+    @apply font-display text-[1.35rem] leading-none font-black tracking-[.04em] uppercase;
+  }
+  .btn-main:not(:disabled):active,
+  .btn-main.pressed {
+    @apply border-ember-dark bg-ember-dark;
+  }
+}

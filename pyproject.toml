@@ -1,0 +1,30 @@
+[project]
+name = "the-yearly-games"
+version = "1.0.0"
+description = "A yearly Hunger Games-style simulator for friends."
+requires-python = ">=3.13"
+dependencies = [
+    "dj-database-url>=2.3",
+    "django>=5.2,<6",
+    "django-storages[s3]>=1.14",
+    "django-tailwind>=4.6",
+    "gunicorn>=23",
+    "pillow>=11",
+    "psycopg[binary]>=3.2",
+    "whitenoise>=6.9",
+]
+
+[dependency-groups]
+dev = [
+    "django-tailwind[cookiecutter,honcho,reload]>=4.6",
+    "railway-sdk>=0.7,<0.8",
+    "ruff>=0.8",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

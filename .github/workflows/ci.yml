@@ -1,0 +1,69 @@
+# CI for The Yearly Games.
+#   lint, test  every push to any branch, and every pull request
+#   apply       after both pass, on a push to main: applies .railway/railway.py to Railway
+#
+# The apply needs one repository secret, RAILWAY_TOKEN: a Railway *project* token for the production
+# environment of the-yearly-games (Railway: project Settings > Tokens). A project token only reaches
+# that one environment.
+#
+# Railway's own action (railwayapp/config) only applies plans reviewed on a pull request, and evaluates
+# TypeScript files, so the apply job runs the Railway CLI itself through the Makefile.
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch: # run it by hand from the Actions tab
+
+permissions:
+  contents: read
+
+env:
+  UV_PYTHON: "3.13"
+  RAILWAY_CLI_VERSION: "5.71.0"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+      - name: Install dependencies
+        run: uv sync --frozen
+      - name: Lint (ruff check and format check)
+        run: make lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+      - name: Install gettext (compiles the French translations for the tests)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gettext
+      - name: Install dependencies
+        run: uv sync --frozen
+      - name: Test (includes thousands of simulated games)
+        run: make test
+
+  apply:
+    needs: [lint, test]
+    # Only pushes to the infrastructure branch; pull requests and other branches stop after the tests.
+    if: github.event_name == 'push' && github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    # A GitHub environment records each apply and can require an approval (repository Settings > Environments).
+    environment: railway-production
+    # One apply at a time, in push order: a newer push waits instead of racing the running apply.
+    concurrency:
+      group: railway-infra
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+      - name: Install dependencies (railway_sdk evaluates .railway/railway.py)
+        run: uv sync --frozen
+      - name: Install the Railway CLI
+        run: npm install --global "@railway/cli@${RAILWAY_CLI_VERSION}"
+      - name: Apply the infrastructure
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: make infra-apply-ci
