@@ -1,0 +1,63 @@
+{% extends "games/base.html" %}
+{% load i18n %}
+{% block body %}
+    <header class="flex items-center justify-between gap-4 border-b px-4 py-3 {% if is_night %}border-moon{% else %}border-line{% endif %}">
+      <div>
+        {% include "games/_title.html" %}
+        <span class="text-moss tabular-nums">{{ alive_count }} / {{ total }} {% translate "alive" %}</span>
+      </div>
+      <div class="flex flex-wrap items-center gap-2.5">{% include "games/_language.html" %}</div>
+    </header>
+    {# Phones show either the story or the tribute board: app.js toggles .show-board on this element. #}
+    <div class="group grid min-h-0 flex-1 grid-cols-[1.25fr_1fr] max-md:grid-cols-1" id="stage">
+      <section class="overflow-y-auto p-4 after:block after:h-[70vh] after:content-[''] max-md:group-[.show-board]:hidden" id="story" data-first-new="{{ first_new }}">
+        {% for entry in entries %}{% if entry.heading %}<h2 id="entry-{{ entry.index }}" class="{{ entry.classes }}">{{ entry.html }}</h2>
+        {% else %}<p id="entry-{{ entry.index }}" class="{{ entry.classes }} [&_b]:font-semibold">{{ entry.html }}</p>
+        {% endif %}{% empty %}<p class="mb-2 max-w-[65ch] border-l-3 border-line py-0.5 pl-3">{% translate "The tributes rise into the arena." %}</p>{% endfor %}
+      </section>
+      <aside class="flex flex-col gap-2 overflow-y-auto border-l border-line p-4 max-md:hidden max-md:border-0 max-md:group-[.show-board]:flex">
+        {% for card in cards %}
+        <div class="flex flex-col gap-1 rounded-md border border-line bg-panel px-3 py-2 {% if not card.alive %}opacity-55{% endif %}">
+          <div class="flex flex-wrap items-center gap-2">
+            {% include "games/_avatar.html" with tribute=card.tribute letters=card.letters %}
+            <span class="min-w-24 flex-1 font-semibold wrap-anywhere">{{ card.name }}</span>
+            <span class="rounded-full border px-2 py-0.5 text-xs whitespace-nowrap {{ card.status_classes }}">{{ card.status_text }}</span>
+            <label class="flex items-center gap-1 text-sm whitespace-nowrap text-moss">
+              <input type="checkbox" class="size-[1.1rem] accent-ember" data-present-url="{% url 'present' card.tribute.position %}" {% if card.present %}checked{% endif %}>
+              {% translate "here" %}
+            </label>
+          </div>
+          {% if card.items %}<div class="flex flex-wrap gap-1 text-[.8rem]">{% for item in card.items %}<span class="rounded border border-line px-1.5 py-px text-gold">{{ item }}</span>{% endfor %}</div>{% endif %}
+          <div class="text-[.8rem] text-moss">{% for part in card.details %}{% if not forloop.first %} · {% endif %}{{ part }}{% endfor %}</div>
+        </div>
+        {% endfor %}
+      </aside>
+    </div>
+    <footer class="flex gap-2.5 border-t border-line px-4 py-3">
+      {% if confirm_quit %}
+      <form method="post" action="{% url 'quit' %}">{% csrf_token %}<button type="submit" class="btn">{% translate "Really quit?" %}</button></form>
+      {% else %}
+      <form method="get" action="{% url 'index' %}"><button type="submit" class="btn" name="confirm_quit" value="1">{% translate "Quit" %}</button></form>
+      {% endif %}
+      <button type="button" class="btn hidden max-md:block" data-toggle-board data-board-label="{% translate 'Tributes' %}" data-story-label="{% translate 'Story' %}">{% translate "Tributes" %}</button>
+      <form method="post" action="{% url 'next_round' %}">{% csrf_token %}
+        <button type="submit" class="btn btn-main" {% if round_waiting %}disabled{% endif %}>{{ main_button }}</button>
+      </form>
+    </footer>
+    {% if decision %}
+    <div class="fixed inset-0 flex items-center justify-center bg-[rgba(8,12,9,.88)] p-4">
+      <div class="flex max-h-full w-full max-w-120 flex-col gap-3 overflow-y-auto rounded-lg border-2 border-ember bg-panel p-5 motion-safe:animate-decision-in" role="dialog" aria-modal="true" aria-labelledby="decision-name">
+        <small class="text-xs tracking-widest text-ember uppercase">{{ decision.label }}</small>
+        <div class="flex items-center gap-3 font-display text-[clamp(2.2rem,9vw,3.4rem)] leading-none font-black uppercase wrap-anywhere" id="decision-name">
+          {% include "games/_avatar.html" with tribute=decision.tribute letters=decision.letters big=True %}{{ decision.name }}
+        </div>
+        <p class="m-0">{{ decision.question }}</p>
+        <form method="post" action="{% url 'decision' %}">{% csrf_token %}
+          <input type="hidden" name="position" value="{{ decision.position }}">
+          {% for index, label in decision.options %}<button type="submit" class="btn px-4 py-3.5 text-left font-semibold hover:border-ember" name="choice" value="{{ index }}">{{ label }}</button>
+          {% endfor %}
+        </form>
+      </div>
+    </div>
+    {% endif %}
+{% endblock %}

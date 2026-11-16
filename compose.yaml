@@ -1,0 +1,21 @@
+# Local Postgres, only for `make test-postgres`. Day-to-day development uses SQLite.
+# Port 5452 on the host, so it does not clash with other projects' databases.
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: yearly
+      POSTGRES_PASSWORD: yearly
+      POSTGRES_DB: yearly_games
+    ports:
+      - "5452:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yearly -d yearly_games"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres-data:

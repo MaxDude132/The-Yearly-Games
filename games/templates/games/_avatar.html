@@ -1,0 +1,2 @@
+{# A tribute's round photo, or the first letters of the name. big: the decision pop-up. #}
+{% if tribute.photo %}<img class="{% if big %}size-18{% else %}size-9{% endif %} flex-none rounded-full object-cover" src="{{ tribute.photo.url }}" alt="">{% else %}<span class="{% if big %}size-18 text-[1.4rem]{% else %}size-9 text-xs{% endif %} inline-flex flex-none items-center justify-center rounded-full bg-line font-semibold text-moss uppercase" {% if not letters %}aria-hidden="true"{% endif %}>{{ letters|default:"📷" }}</span>{% endif %}

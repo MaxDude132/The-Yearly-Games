@@ -1,0 +1,20 @@
+[
+{"model":"content.arenaevent","fields":{"key":"wall-of-fire","counter":"healing","is_feast":false}},
+{"model":"content.arenaeventtranslation","fields":{"event":["wall-of-fire"],"language":"en","name":"Wall of fire"}},
+{"model":"content.arenaeventtranslation","fields":{"event":["wall-of-fire"],"language":"fr","name":"Mur de feu"}},
+{"model":"content.arenaevent","fields":{"key":"flood","counter":"trap","is_feast":false}},
+{"model":"content.arenaeventtranslation","fields":{"event":["flood"],"language":"en","name":"Flood"}},
+{"model":"content.arenaeventtranslation","fields":{"event":["flood"],"language":"fr","name":"Inondation"}},
+{"model":"content.arenaevent","fields":{"key":"muttations","counter":"weapon","is_feast":false}},
+{"model":"content.arenaeventtranslation","fields":{"event":["muttations"],"language":"en","name":"Muttations"}},
+{"model":"content.arenaeventtranslation","fields":{"event":["muttations"],"language":"fr","name":"Mutations"}},
+{"model":"content.arenaevent","fields":{"key":"deep-freeze","counter":"gear","is_feast":false}},
+{"model":"content.arenaeventtranslation","fields":{"event":["deep-freeze"],"language":"en","name":"Deep freeze"}},
+{"model":"content.arenaeventtranslation","fields":{"event":["deep-freeze"],"language":"fr","name":"Gel soudain"}},
+{"model":"content.arenaevent","fields":{"key":"wasp-swarm","counter":"armor","is_feast":false}},
+{"model":"content.arenaeventtranslation","fields":{"event":["wasp-swarm"],"language":"en","name":"Wasp swarm"}},
+{"model":"content.arenaeventtranslation","fields":{"event":["wasp-swarm"],"language":"fr","name":"Essaim de guêpes"}},
+{"model":"content.arenaevent","fields":{"key":"feast","counter":"","is_feast":true}},
+{"model":"content.arenaeventtranslation","fields":{"event":["feast"],"language":"en","name":"Feast at the Cornucopia"}},
+{"model":"content.arenaeventtranslation","fields":{"event":["feast"],"language":"fr","name":"Festin à la Corne d'abondance"}}
+]
