@@ -6,6 +6,7 @@ No database and no screen code here, so the engine can run in tests and be repla
 from dataclasses import dataclass, field
 
 from .catalogue import Item, Line
+from .memory import remember_kill
 
 
 @dataclass(eq=False)
@@ -137,6 +138,8 @@ class Arena:
                     add_grudge(tribute, killer)
         victim.alliance = 0
         self.dissolve_lonely_alliances()
+        if killer:
+            remember_kill(self, killer, victim)
 
     # ---------- decisions ----------
 

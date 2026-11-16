@@ -103,3 +103,30 @@ msgstr "Décision pour"
 
 msgid "Fallen, still playing"
 msgstr "Hors jeu, mais toujours là"
+
+msgid "Wounded"
+msgstr "Blessé"
+
+msgid "Healthy"
+msgstr "En forme"
+
+msgid "Carries: %(items)s"
+msgstr "Porte : %(items)s"
+
+msgid "Carries nothing"
+msgstr "Ne porte rien"
+
+msgid "Allies."
+msgstr "Alliés."
+
+msgid "%(holder)s holds a grudge against %(target)s."
+msgstr "%(holder)s a une rancune contre %(target)s."
+
+msgid "Same district."
+msgstr "Même district."
+
+msgid "%(name)s is in an alliance of %(count)s."
+msgstr "%(name)s fait partie d'une alliance de %(count)s."
+
+msgid "Tributes left: %(count)s"
+msgstr "Tributs restants : %(count)s"

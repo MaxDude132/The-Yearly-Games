@@ -137,6 +137,10 @@ class FlowTests(TestCase):
         self.assertIn("The gong sounds.", page)
         self.assertIn("Sprint for the weapons", page)
         self.assertIn("Decision for", page)
+        self.assertIn("data-decision-facts", page)
+        self.assertIn("Healthy", page)
+        self.assertIn("Carries nothing", page)
+        self.assertIn("Tributes left: 24", page)
         self.assertRegex(page, r"<button[^>]*btn-main[^>]*disabled")
 
         # Nothing of the unfinished round is saved, and showing it again changes nothing.

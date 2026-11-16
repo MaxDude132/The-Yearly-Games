@@ -4,6 +4,7 @@ from django.core.management import call_command
 from django.test import TestCase
 
 from games.engine.dice import Dice
+from games.engine.memory import callback_for
 from games.engine.rounds import is_night_round, play_next_round
 from games.engine.state import Arena, Tribute
 from games.render import MissingValue, Translator
@@ -105,3 +106,46 @@ class EngineTests(TestCase):
         first = self.play(7, lambda i: i % 2 == 0, answer_first)
         again = self.play(7, lambda i: i % 2 == 0, answer_first)
         self.assertEqual(first.log, again.log)
+
+    # ---------- the story remembers ----------
+    def arena_with_story(self, *told):
+        """A small arena whose story already contains the given (group, a, b) lines."""
+        tributes = [Tribute(id=i) for i in range(6)]
+        arena = Arena(self.catalogue, Dice(1), tributes, lambda decision: 0)
+        for group, a, b in told:
+            arena.add_to_story("", self.catalogue.variants(group)[0], a=tributes[a], b=tributes[b])
+        return arena, tributes
+
+    def test_a_kill_calls_back_to_what_happened_between_the_two(self):
+        cases = [
+            ([("alliance.betrayal", 3, 2)], "callback.betrayal_avenged"),  # 3 betrayed 2, now 2 kills 3
+            ([("alliance.betrayal", 2, 3)], "callback.betrayal_finished"),
+            ([("encounter.steals", 3, 2)], "callback.theft_repaid"),
+            ([("encounter.caught_stealing", 3, 2)], "callback.theft_repaid"),
+            ([("encounter.leaves_sleeper", 3, 2)], "callback.mercy_repaid"),
+            ([("encounter.alliance_formed", 3, 2)], "callback.former_allies"),
+            ([("encounter.alliance_formed", 2, 3)], "callback.former_allies"),
+            ([("combat.wound", 2, 3)], "callback.unfinished_business"),
+        ]
+        for told, expected in cases:
+            arena, tributes = self.arena_with_story(*told)
+            self.assertEqual(callback_for(arena, tributes[2], tributes[3]), expected, told)
+
+    def test_district_partners_get_a_callback_and_strangers_do_not(self):
+        arena, tributes = self.arena_with_story()
+        self.assertIsNone(callback_for(arena, tributes[2], tributes[4]))
+        self.assertEqual(callback_for(arena, tributes[0], tributes[1]), "callback.district_partners")
+        self.assertIsNone(callback_for(arena, tributes[0], tributes[2]))
+
+    def test_killing_tells_the_callback_after_the_death_line(self):
+        arena, tributes = self.arena_with_story(("encounter.steals", 3, 2))
+        before = len(arena.log)
+        arena.kill_tribute(tributes[3], tributes[2])
+        self.assertEqual([entry.line.group for entry in arena.log[before:]], ["callback.theft_repaid"])
+        self.assertEqual((arena.log[-1].a, arena.log[-1].b), (2, 3))
+
+    def test_a_death_without_a_killer_has_no_callback(self):
+        arena, tributes = self.arena_with_story(("encounter.steals", 3, 2))
+        before = len(arena.log)
+        arena.kill_tribute(tributes[3])
+        self.assertEqual(len(arena.log), before)

@@ -5,6 +5,7 @@ from django.core.management import call_command
 from django.test import TestCase
 
 from content import models
+from games.engine.memory import CALLBACK_GROUPS
 from games.engine.rounds import BOND_GROUPS
 from games.services import load_catalogue
 
@@ -78,6 +79,7 @@ class ContentTests(TestCase):
 
     def test_the_engine_finds_every_group_it_tells(self):
         catalogue = load_catalogue()
-        for group in [*BOND_GROUPS, "phase.bloodbath", "phase.day", "phase.night", "finale.announced"]:
+        groups = [*BOND_GROUPS, *CALLBACK_GROUPS, "phase.bloodbath", "phase.day", "phase.night"]
+        for group in [*groups, "finale.announced"]:
             self.assertTrue(catalogue.variants(group), group)
         self.assertEqual(len(catalogue.variants("finale.tactic")), 3)

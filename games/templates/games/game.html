@@ -52,6 +52,11 @@
           {% include "games/_avatar.html" with tribute=decision.tribute letters=decision.letters big=True %}{{ decision.name }}
         </div>
         <p class="m-0">{{ decision.question }}</p>
+        <div class="flex flex-col gap-1 rounded-md border border-line px-3 py-2 text-[.85rem] text-moss" data-decision-facts>
+          {% for person in decision.facts.people %}<div><span class="font-semibold text-bone">{{ person.name }}</span> · {{ person.status }} · {{ person.items }}</div>
+          {% endfor %}{% for relation in decision.facts.relations %}<div>{{ relation }}</div>
+          {% endfor %}
+        </div>
         <form method="post" action="{% url 'decision' %}">{% csrf_token %}
           <input type="hidden" name="position" value="{{ decision.position }}">
           {% for index, label in decision.options %}<button type="submit" class="btn px-4 py-3.5 text-left font-semibold hover:border-ember" name="choice" value="{{ index }}">{{ label }}</button>

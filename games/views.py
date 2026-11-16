@@ -15,6 +15,7 @@ from games import roster as roster_tools
 from games import services
 from games.engine.dice import Dice
 from games.engine.rounds import is_night_round
+from games.engine.state import holds_grudge, same_alliance
 from games.models import Game
 from games.render import Translator, current_language, display_name
 from games.styles import STATUS_PILLS, story_classes
@@ -124,7 +125,7 @@ def _game_page(request, game):
             "cards": cards,
             "main_button": main_button,
             "round_waiting": decision is not None,
-            "decision": _decision_context(decision, rows, translator, names, game),
+            "decision": _decision_context(decision, rows, translator, names, game, arena),
             "confirm_quit": "confirm_quit" in request.GET,
         },
     )
@@ -163,7 +164,7 @@ def _card(row, tribute, arena, translator, names):
     }
 
 
-def _decision_context(decision, rows, translator, names, game):
+def _decision_context(decision, rows, translator, names, game, arena):
     if decision is None:
         return None
     row = rows[decision.tribute.id]
@@ -179,9 +180,61 @@ def _decision_context(decision, rows, translator, names, game):
         "name": names[row.position],
         "letters": _letters(row),
         "question": translator.question_text(decision, names.__getitem__),
-        "options": list(enumerate(translator.option_labels(decision, names.__getitem__))),
+        "options": list(enumerate(_option_labels(decision, arena, translator, names))),
+        "facts": _decision_facts(decision, arena, translator, names),
         "position": game.answers.count(),
     }
+
+
+def _status(tribute):
+    return _("Wounded") if tribute.wounded else _("Healthy")
+
+
+def _option_labels(decision, arena, translator, names):
+    """The buttons of a question. A sponsor gift offers tributes, each shown with its condition."""
+    labels = translator.option_labels(decision, names.__getitem__)
+    if not decision.option_tributes:
+        return labels
+    pairs = zip(labels, decision.option_tributes, strict=True)
+    return [f"{label} · {_status(tribute)}" for label, tribute in pairs]
+
+
+def _person(tribute, translator, names):
+    items = ", ".join(translator.items[item.key] for item in tribute.items)
+    return {
+        "name": names[tribute.id],
+        "status": _status(tribute),
+        "items": _("Carries: %(items)s") % {"items": items} if items else _("Carries nothing"),
+    }
+
+
+def _decision_facts(decision, arena, translator, names):
+    """What the player needs to know to choose: how the tributes involved are doing, how they
+    relate to each other, and how many are left."""
+    me = decision.tribute
+    other = next((t for t in (decision.a, decision.b) if t is not None and t is not me), None)
+    people, relations = [], []
+    if me.alive and not decision.for_whole_arena:
+        people.append(_person(me, translator, names))
+        if other:
+            people.append(_person(other, translator, names))
+            if same_alliance(me, other):
+                relations.append(_("Allies."))
+            for holder, target in ((me, other), (other, me)):
+                if holds_grudge(holder, target):
+                    relations.append(
+                        _("%(holder)s holds a grudge against %(target)s.")
+                        % {"holder": names[holder.id], "target": names[target.id]}
+                    )
+            if me.district == other.district:
+                relations.append(_("Same district."))
+        if me.alliance:
+            size = len([t for t in arena.living() if t.alliance == me.alliance])
+            relations.append(
+                _("%(name)s is in an alliance of %(count)s.") % {"name": names[me.id], "count": size}
+            )
+    relations.append(_("Tributes left: %(count)s") % {"count": len(arena.living())})
+    return {"people": people, "relations": relations}
 
 
 # ---------- health check (Railway calls it before switching traffic to a new deploy) ----------
