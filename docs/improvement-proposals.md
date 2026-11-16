@@ -167,6 +167,14 @@ Shows the decisive moments, for example "the choice that changed the game", pick
 11. **A past win is flavour only.** The year appears in intro and callback lines (for example "the 2023 victor"). It has no gameplay effect.
 12. **One past-winning year per person.** Setup shows a "past winner" checkbox next to each name, with a single year field that appears when ticked.
 
+## Later change: past victors are not tributes
+
+Past victors are now their own list at setup (table `PastVictor`: name, year, photo, here), outside the 24 tributes. The "Won in" field on tributes is gone. In the engine they are `Victor` objects in `Arena.victors`.
+- **Sponsor gifts** come from the past victors in the room (question `victor_sponsor`, story line `item.from_victor`). When no past victor is in the room, the fallen in the room send them, as before.
+- **Disasters** are chosen only by the fallen in the room (before, any player in the room could be the Gamemaker).
+- **Votes:** the "past winners" voter groups now mean the past victors in the room. They have no tribute or alliance, so fair play never keeps them out. The setting values (`past_winners`...) are unchanged.
+- This replaces answers 7, 11 and 12 below.
+
 ## Open questions
 
 None at the moment. Next step: pick the first items from the suggested order and turn them into a concrete implementation plan (data model changes, files, tests).

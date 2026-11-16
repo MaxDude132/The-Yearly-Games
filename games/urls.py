@@ -9,4 +9,5 @@ urlpatterns = [
     path("decision/", views.decision, name="decision"),
     path("quit/", views.quit_game, name="quit"),
     path("tributes/<int:position>/present/", views.set_present, name="present"),
+    path("victors/<int:position>/present/", views.set_victor_present, name="victor_present"),
 ]

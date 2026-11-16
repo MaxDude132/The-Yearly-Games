@@ -4,7 +4,7 @@ A Hunger Games-style simulator for our yearly game with friends. 24 tributes, on
 ## How a game works
 1. Type the names in district order: tributes 1 & 2 are District 1, tributes 3 & 4 District 2, and so on. Tap the circle next to a name to add a photo.
 2. Tick **here** for everyone in the room. You can change this during the game on the tribute board.
-   Type a year in **Won in** for past winners of the Yearly Games. Under **Votes**, choose who votes for tributes who are not in the room: nobody, the dead (the default), past winners, both, or everyone. **Fair play** (on by default) keeps players out of votes about their own tribute or alliance.
+   Under **Past victors**, add the people who won an earlier Yearly Games (name, year, photo, here). They are not tributes. Under **Votes**, choose who votes for tributes who are not in the room: nobody, the dead (the default), past victors, both, or everyone. **Fair play** (on by default) keeps players out of votes about their own tribute or alliance.
 3. Tap through the rounds: the Bloodbath, then Day 1, Night 1, Day 2...
 4. When a player in the room has a choice to make, a pop-up shows their name, how the tributes involved are doing, what links them, and who would likely win a fight. A normal round has up to 3 pop-ups, 4 when 8 or fewer are left, 6 when 4 or fewer are left. Pass the phone or tap for them. The app decides for everyone who isn't there.
 
@@ -13,7 +13,8 @@ What makes each game different:
 - **Items:** weapons, armour, ointments, food, rope, gear from the Cornucopia, sponsors and the feast. Items help most of the time, not always: weapons break, medicine can fail, food can be spoiled.
 - **Alliances and grudges:** tributes team up, betray each other late in the game, and hunt the people who hurt their friends.
 - **Reputation and memory:** killing three times makes a tribute *feared* (a small fighting bonus, but others go looking for them). Rushing the Cornucopia and killing makes you feared too. Fleeing the Bloodbath leaves you *hidden* for the first two nights, so sleepers are sometimes walked past. Betraying an ally makes you a *betrayer*: later alliances with you can fall through. When a tribute kills someone they have history with, the story says so (betrayal, theft, mercy, old alliance, a wound, same district). The pop-up also shows how the tributes involved are doing.
-- **Fallen players keep playing:** dead players in the room send sponsor gifts, and any player in the room may be handed the Gamemaker controls to pick the disaster that hits everyone. A fallen Gamemaker also shields one of four tributes from the disaster they chose.
+- **Past victors sponsor:** past victors in the room choose which tribute receives a sponsor gift. When none is in the room, the fallen in the room send the gifts instead.
+- **Fallen players keep playing:** dead players in the room are handed the Gamemaker controls to pick the disaster that hits everyone, and shield one of four tributes from it. Only the fallen choose disasters.
 - **Mercy:** when a fight would kill, the winner may spare the loser. The loser is wounded, hands over something they carry, and owes the winner a life: if they ever win a fight against them, they let them go. Sparing makes you *merciful*, which can turn a refused alliance into a yes. No mercy in the final duel.
 - **Daily goals:** each morning a few players in the room choose what their tribute sets out to do (hunt, hide, scavenge, stay with allies). It changes what is likely to happen to them that day and night. Each morning also starts with a rumour (supplies, hunters, a storm): the goal that fits it works better that day and night.
 - **Acts:** with 12 left, the Gamemakers name the deadliest tribute (who becomes feared). With 4 left, the story recalls what binds or divides the finalists: debts, alliances, grudges, betrayals.
@@ -62,7 +63,7 @@ games/
   models.py               a saved game: tributes, items, grudges, story, pending answers
   services.py             loads/saves a game and runs a round (see below)
   render.py               turns story entries into text in the viewer's language
-  roster.py               setup screen: names, who is here, photos
+  roster.py               setup screen: tributes and past victors (names, who is here, photos)
   views.py, urls.py       the pages and actions
   styles.py               Tailwind classes chosen in Python (story line colours, status pills)
   templates/              HTML with Tailwind classes

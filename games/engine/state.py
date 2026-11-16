@@ -23,7 +23,6 @@ VOTES_PER_ROUND = 1
 class Tribute:
     id: int  # position in the roster: 0, 1, 2... (district = id // 2 + 1)
     present: bool = True  # in the room: makes their own choices
-    past_winner_year: int | None = None  # won an earlier Yearly Games (flavour only)
     goal: str = ""  # what the tribute does today: HUNT, HIDE, SCAVENGE, GUARD
     alive: bool = True
     wounded: bool = False
@@ -42,6 +41,15 @@ class Tribute:
         return self.id // 2 + 1
 
 
+@dataclass(eq=False)
+class Victor:
+    """A past winner of the Yearly Games. Not a tribute: never in the arena, but when in the room
+    they sponsor tributes and may vote for absent ones."""
+
+    id: int  # position in the list of past victors: 0, 1, 2...
+    present: bool = True  # in the room
+
+
 @dataclass(frozen=True)
 class Entry:
     """One line of the story. The values fill the placeholders of the line, whatever the language."""
@@ -51,6 +59,7 @@ class Entry:
     a: int | None = None  # tribute ids
     b: int | None = None
     sponsor: int | None = None
+    victor: int | None = None  # a past victor's id (not a tribute id)
     item: str | None = None  # item key
     n: int | None = None
     names: tuple[int, ...] = ()
@@ -60,13 +69,14 @@ class Entry:
 class Decision:
     """A question for a player in the room."""
 
-    tribute: Tribute  # who decides
-    question: str  # key of the question, or "sponsor" / "gamemaker"
+    tribute: Tribute | Victor  # who decides: a tribute's player, or a past victor
+    question: str  # key of the question, or "sponsor" / "victor_sponsor" / "gamemaker"
     option_count: int
     a: Tribute | None = None
     b: Tribute | None = None
     item: Item | None = None
     sponsor: Tribute | None = None
+    victor: Victor | None = None  # fills {victor} in the question
     option_tributes: tuple[Tribute, ...] = ()  # sponsor question: the options are these tributes
     option_events: tuple = ()  # gamemaker question: the options are these arena events
     for_whole_arena: bool = False
@@ -92,10 +102,12 @@ class Arena:
     def __init__(
         self, catalogue, dice, tributes, ask, *, log=None, round=0, day=0,
         alliance_count=0, feast_happened=False, winner=None, voters=NOBODY, no_conflict_votes=True,
+        victors=(),
     ):  # fmt: skip
         self.catalogue = catalogue
         self.dice = dice
         self.tributes = tributes
+        self.victors = list(victors)  # past victors: outside the arena
         self.ask = ask
         self.log = log if log is not None else []
         self.saved_log_length = len(self.log)  # entries from here on are not in the database yet
@@ -113,13 +125,16 @@ class Arena:
 
     # ---------- story ----------
 
-    def add_to_story(self, style, line, *, a=None, b=None, sponsor=None, item=None, n=None, names=()):
+    def add_to_story(
+        self, style, line, *, a=None, b=None, sponsor=None, victor=None, item=None, n=None, names=()
+    ):
         self.log.append(
             Entry(
                 style, line,
                 a=a.id if a else None,
                 b=b.id if b else None,
                 sponsor=sponsor.id if sponsor else None,
+                victor=victor.id if victor else None,
                 item=item.key if item else None,
                 n=n,
                 names=tuple(tribute.id for tribute in names),
@@ -189,31 +204,31 @@ class Arena:
         return self.dice.weighted_index(weights)
 
     def voters_for(self, tribute, values):
-        """The players in the room who vote for this absent tribute, following the game's settings."""
+        """The people in the room who vote for this absent tribute, following the game's settings:
+        tributes' players first, then past victors."""
 
         def in_group(voter):
             if self.voters == EVERYONE:
                 return True
-            past_winner = voter.past_winner_year is not None
-            dead = not voter.alive
-            if self.voters == PAST_WINNERS:
-                return past_winner
-            if self.voters == DEAD:
-                return dead
-            if self.voters == PAST_WINNERS_AND_DEAD:
-                return past_winner or dead
+            if self.voters in (DEAD, PAST_WINNERS_AND_DEAD):
+                return not voter.alive
             return False
+
+        victors_vote = self.voters in (PAST_WINNERS, PAST_WINNERS_AND_DEAD, EVERYONE)
+        # Past victors are never in a conflict: they have no tribute and no alliance.
+        victor_voters = [victor for victor in self.victors if victor.present] if victors_vote else []
 
         involved = [t for t in (tribute, values.get("a"), values.get("b")) if t is not None]
 
         def has_conflict(voter):
             return any(voter is t or same_alliance(voter, t) for t in involved)
 
-        return [
+        tribute_voters = [
             voter for voter in self.tributes
             if voter.present and voter is not tribute and in_group(voter)
             and not (self.no_conflict_votes and has_conflict(voter))
         ]  # fmt: skip
+        return tribute_voters + victor_voters
 
     def hold_vote(self, voters, tribute, question, weights, values):
         """Each voter picks an option. The most votes wins; a tie is settled by the dice."""

@@ -16,9 +16,9 @@ from games import services
 from games.engine.combat import strength_bonus
 from games.engine.dice import Dice
 from games.engine.rounds import is_night_round
-from games.engine.state import alliance_leader, holds_grudge, owes_life, same_alliance
+from games.engine.state import Victor, alliance_leader, holds_grudge, owes_life, same_alliance
 from games.models import Game
-from games.render import Translator, current_language, display_name
+from games.render import Translator, current_language, display_name, victor_display_name
 from games.styles import STATUS_PILLS, story_classes
 
 NEW = "?new=1"  # tells the page to open at the start of the newest round
@@ -60,17 +60,22 @@ def index(request, game):
 
 def _setup_page(request, game):
     rows = list(game.tributes.order_by("position"))
+    victors = list(game.victors.order_by("position"))
     return render(
         request,
         "games/setup.html",
         {
             "rows": [{"tribute": row, "number": row.position + 1, "letters": _letters(row)} for row in rows],
+            "victors": [
+                {"victor": row, "number": row.position + 1, "letters": _victor_letters(row)}
+                for row in victors
+            ],
             "can_start": len(rows) >= services.MIN_TRIBUTES,
             "voter_choices": [
                 (Game.Voters.NOBODY, _("Nobody: the arena decides")),
                 (Game.Voters.DEAD, _("The dead")),
-                (Game.Voters.PAST_WINNERS, _("Past winners")),
-                (Game.Voters.PAST_WINNERS_AND_DEAD, _("Past winners and the dead")),
+                (Game.Voters.PAST_WINNERS, _("Past victors")),
+                (Game.Voters.PAST_WINNERS_AND_DEAD, _("Past victors and the dead")),
                 (Game.Voters.EVERYONE, _("Everyone in the room")),
             ],
             "game": game,
@@ -80,6 +85,10 @@ def _setup_page(request, game):
 
 def _letters(row):
     return display_name(row).strip()[:2]
+
+
+def _victor_letters(row):
+    return victor_display_name(row).strip()[:2]
 
 
 def _game_page(request, game):
@@ -95,6 +104,9 @@ def _game_page(request, game):
     rows = list(game.tributes.order_by("position"))
     names = {row.position: display_name(row) for row in rows}
     name_of = names.__getitem__
+    victor_rows = list(game.victors.order_by("position"))
+    victor_names = {row.position: victor_display_name(row) for row in victor_rows}
+    victor_name_of = victor_names.get  # None for a victor removed since (the story then leaves a blank)
     night = is_night_round(arena.round)
 
     show_new = decision is not None or "new" in request.GET
@@ -104,7 +116,7 @@ def _game_page(request, game):
             "index": index,
             "classes": story_classes(entry.style, index >= first_new),
             "heading": entry.style.startswith("heading"),
-            "html": translator.story(entry, name_of),
+            "html": translator.story(entry, name_of, victor_name_of=victor_name_of),
         }
         for index, entry in enumerate(arena.log)
     ]
@@ -132,14 +144,24 @@ def _game_page(request, game):
             "entries": entries,
             "first_new": first_new,
             "cards": cards,
+            "victors": [
+                {
+                    "victor": row,
+                    "name": victor_names[row.position],
+                    "letters": _victor_letters(row),
+                    "year": row.year,
+                    "present": row.present,
+                }
+                for row in victor_rows
+            ],  # fmt: skip
             "main_button": main_button,
             "round_waiting": decision is not None,
-            "decision": _decision_context(decision, rows, translator, names, game, arena),
+            "decision": _decision_context(decision, rows, victor_rows, translator, names, game, arena),
             "bets": _bet_form(game, arena, decision, rows, names),
             "scores": [
                 {"name": names[row.position], "points": points} for row, points in services.bet_scores(game)
             ],
-            "recap": _recap(arena, translator, name_of) if arena.winner else None,
+            "recap": _recap(arena, translator, name_of, victor_name_of) if arena.winner else None,
             "confirm_quit": "confirm_quit" in request.GET,
         },
     )
@@ -160,9 +182,6 @@ def _card(row, tribute, arena, translator, names):
 
     enemy_names = [names[i] for i in tribute.grudges if arena.tributes[i].alive]
     details = [f"{_('District')} {row.district}"]
-    if row.past_winner_year:
-        victor = _("Victor of %(year)s") % {"year": row.past_winner_year}
-        details.append(mark_safe(f'<span class="text-gold">{escape(victor)}</span>'))
     if tribute.alive and tribute.goal:
         details.append(_goal_labels()[tribute.goal])
     if tribute.alliance:
@@ -193,10 +212,17 @@ def _card(row, tribute, arena, translator, names):
     }
 
 
-def _decision_context(decision, rows, translator, names, game, arena):
+def _decision_context(decision, rows, victor_rows, translator, names, game, arena):
     if decision is None:
         return None
-    row = rows[decision.tribute.id]
+    by_victor = isinstance(decision.tribute, Victor)
+    if by_victor:
+        row = victor_rows[decision.tribute.id]
+        name, letters = victor_display_name(row), _victor_letters(row)
+    else:
+        row = rows[decision.tribute.id]
+        name, letters = names[row.position], _letters(row)
+    victor_names = {victor.position: victor_display_name(victor) for victor in victor_rows}
     if decision.vote_total and not decision.vote_for:
         label = _("The fallen vote: %(number)s of %(total)s") % {
             "number": decision.vote_number, "total": decision.vote_total,
@@ -207,6 +233,8 @@ def _decision_context(decision, rows, translator, names, game, arena):
         }  # fmt: skip
     elif decision.for_whole_arena:
         label = _("Decides for the whole arena")
+    elif by_victor:
+        label = _("Past victor")
     elif decision.tribute.alive:
         label = _("Decision for")
     else:
@@ -214,9 +242,9 @@ def _decision_context(decision, rows, translator, names, game, arena):
     return {
         "label": label,
         "tribute": row,
-        "name": names[row.position],
-        "letters": _letters(row),
-        "question": translator.question_text(decision, names.__getitem__),
+        "name": name,
+        "letters": letters,
+        "question": translator.question_text(decision, names.__getitem__, victor_name_of=victor_names.get),
         "options": list(enumerate(_option_labels(decision, arena, translator, names))),
         "facts": _decision_facts(decision, arena, translator, names),
         "position": game.answers.count(),
@@ -262,7 +290,7 @@ def _decision_facts(decision, arena, translator, names):
     me = decision.vote_for or decision.tribute
     other = next((t for t in (decision.a, decision.b) if t is not None and t is not me), None)
     people, relations = [], []
-    if me.alive and not decision.for_whole_arena:
+    if not isinstance(me, Victor) and me.alive and not decision.for_whole_arena:
         people.append(_person(me, translator, names))
         if other:
             people.append(_person(other, translator, names))
@@ -318,6 +346,10 @@ def roster(request, game):
         roster_tools.add_tribute(game)
     elif action.startswith("remove-") and action[7:].isdigit():
         roster_tools.remove_tribute(game, int(action[7:]))
+    elif action == "add-victor":
+        roster_tools.add_victor(game)
+    elif action.startswith("remove-victor-") and action[14:].isdigit():
+        roster_tools.remove_victor(game, int(action[14:]))
     elif action == "start":
         services.start_game(game)
     return redirect("index")
@@ -366,6 +398,16 @@ def set_present(request, game, position):
     return HttpResponse(status=204 if updated else 404)
 
 
+@require_POST
+@with_game
+def set_victor_present(request, game, position):
+    """Ticks or unticks "here" for a past victor during the game (not while a question is open)."""
+    if game.round_seed is not None:
+        return JsonResponse({"error": "a question is open"}, status=409)
+    updated = game.victors.filter(position=position).update(present=request.POST.get("present") == "1")
+    return HttpResponse(status=204 if updated else 404)
+
+
 # ---------- bets and the recap ----------
 def _bet_form(game, arena, decision, rows, names):
     """Before a night (not the final duel), each player in the room may bet on who falls first."""
@@ -391,11 +433,11 @@ RECAP_GROUPS = (
 )  # fmt: skip
 
 
-def _recap(arena, translator, name_of):
+def _recap(arena, translator, name_of, victor_name_of):
     """The end of the game: the victor's kills and the turning points of the story."""
     winner = arena.winner.id
     moments = [
-        translator.story(entry, name_of)
+        translator.story(entry, name_of, victor_name_of=victor_name_of)
         for entry in arena.log
         if entry.line.group in RECAP_GROUPS
         or entry.line.group.startswith("callback.")

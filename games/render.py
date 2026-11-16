@@ -31,6 +31,11 @@ def display_name(row):
     return row.name or f"{gettext('Tribute')} {row.position + 1}"
 
 
+def victor_display_name(row):
+    """A past victor's name, or "Past victor 2" in the viewer's language if nobody typed one."""
+    return row.name or f"{gettext('Past victor')} {row.position + 1}"
+
+
 class Translator:
     """All the content text for one language, loaded once."""
 
@@ -52,27 +57,29 @@ class Translator:
             ):
                 self.options[row.option.natural_key()] = row.label
 
-    def story(self, entry, name_of, strict=False):
-        """The HTML of a story entry: tribute names in bold."""
+    def story(self, entry, name_of, strict=False, victor_name_of=None):
+        """The HTML of a story entry: names in bold. name_of gives a tribute's name from its id,
+        victor_name_of a past victor's."""
         values = {
-            "a": entry.a, "b": entry.b, "sponsor": entry.sponsor, "item": entry.item,
-            "n": entry.n, "names": entry.names,
+            "a": entry.a, "b": entry.b, "sponsor": entry.sponsor, "victor": entry.victor,
+            "item": entry.item, "n": entry.n, "names": entry.names,
         }  # fmt: skip
-        return self.fill(self.lines[entry.line], values, name_of, strict)
+        return self.fill(self.lines[entry.line], values, name_of, strict, victor_name_of)
 
     def phase(self, round_number, day, night):
         """The title of a round: The Bloodbath, Day 3 or Night 3."""
         group = "phase.bloodbath" if round_number == 1 else "phase.night" if night else "phase.day"
         return self.fill(self.lines[(group, 0)], {"n": day}, lambda tribute_id: "")
 
-    def question_text(self, decision, name_of, strict=False):
+    def question_text(self, decision, name_of, strict=False, victor_name_of=None):
         values = {
             "a": decision.a.id if decision.a else None,
             "b": decision.b.id if decision.b else None,
             "sponsor": decision.sponsor.id if decision.sponsor else None,
+            "victor": decision.victor.id if decision.victor else None,
             "item": decision.item.key if decision.item else None,
         }
-        return self.fill(self.questions[decision.question], values, name_of, strict)
+        return self.fill(self.questions[decision.question], values, name_of, strict, victor_name_of)
 
     def option_labels(self, decision, name_of):
         if decision.option_tributes:
@@ -81,11 +88,11 @@ class Translator:
             return [self.events[event.key] for event in decision.option_events]
         return [self.options[(decision.question, i)] for i in range(decision.option_count)]
 
-    def fill(self, template, values, name_of, strict=False):
-        """Fills {a}, {b}, {sponsor}, {item}, {n} and {names} in a template. Returns safe HTML."""
+    def fill(self, template, values, name_of, strict=False, victor_name_of=None):
+        """Fills {a}, {b}, {sponsor}, {victor}, {item}, {n} and {names} in a template. Returns safe HTML."""
 
-        def bold(tribute_id):
-            return f"<b>{escape(name_of(tribute_id))}</b>"
+        def bold(name):
+            return f"<b>{escape(name)}</b>"
 
         def replace(match):
             key = match.group(1)
@@ -95,9 +102,11 @@ class Translator:
                     raise MissingValue(f"no value for {{{key}}} in: {template}")
                 return ""
             if key in ("a", "b", "sponsor"):
-                return bold(value)
+                return bold(name_of(value))
+            if key == "victor":
+                return bold(victor_name_of(value))
             if key == "names":
-                return ", ".join(bold(tribute_id) for tribute_id in value)
+                return ", ".join(bold(name_of(tribute_id)) for tribute_id in value)
             if key == "item":
                 return escape(self.items[value])
             return escape(str(value))

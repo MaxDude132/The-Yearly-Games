@@ -246,20 +246,13 @@ class FlowTests(TestCase):
         self.assertEqual(len(arena.log), game.log.count())
         self.assertEqual(len(arena.living()), game.tributes.filter(alive=True).count())
 
-    # ---------- votes, past winners, bets and the recap ----------
-    def test_the_setup_saves_past_winners_and_the_vote_settings(self):
-        self.client.post(
-            "/roster/",
-            setup_form(self.game, action="save", voters="everyone", **{"won-0": "2023", "won-1": "nope"}),
-        )
+    # ---------- votes, past victors, bets and the recap ----------
+    def test_the_setup_saves_the_vote_settings(self):
+        self.client.post("/roster/", setup_form(self.game, action="save", voters="everyone"))
         self.game.refresh_from_db()
         self.assertEqual(self.game.voters, Game.Voters.EVERYONE)
         self.assertFalse(self.game.no_conflict_votes)  # the box was not ticked
-        self.assertEqual(self.game.tributes.get(position=0).past_winner_year, 2023)
-        self.assertIsNone(self.game.tributes.get(position=1).past_winner_year)
-        page = self.client.get("/").content.decode()
-        self.assertIn('value="2023"', page)
-        self.assertRegex(page, r'<option value="everyone" selected>')
+        self.assertRegex(self.client.get("/").content.decode(), r'<option value="everyone" selected>')
         self.client.post(
             "/roster/", setup_form(self.game, action="save", voters="hackers", no_conflict_votes="on")
         )
@@ -267,9 +260,63 @@ class FlowTests(TestCase):
         self.assertEqual(self.game.voters, Game.Voters.EVERYONE)  # an unknown value is ignored
         self.assertTrue(self.game.no_conflict_votes)
 
-    def test_a_past_winner_is_shown_on_the_board(self):
-        self.client.post("/roster/", setup_form(self.game, action="start", **{"won-0": "2021"}))
-        self.assertIn("Victor of 2021", self.client.get("/").content.decode())
+    def test_past_victors_are_added_saved_and_removed_apart_from_the_tributes(self):
+        self.client.post("/roster/", setup_form(self.game, action="add-victor"))
+        self.client.post("/roster/", setup_form(self.game, action="add-victor"))
+        self.assertEqual(self.game.victors.count(), 2)
+        self.assertEqual(self.game.tributes.count(), 24)  # victors are not tributes
+        fields = {
+            "victor-name-0": "Alex", "victor-year-0": "2023", "victor-here-0": "on",
+            "victor-name-1": "Sam", "victor-year-1": "nope",
+        }  # fmt: skip
+        self.client.post("/roster/", setup_form(self.game, action="save", **fields))
+        alex, sam = self.game.victors.order_by("position")
+        self.assertEqual((alex.name, alex.year, alex.present), ("Alex", 2023, True))
+        self.assertEqual((sam.name, sam.year, sam.present), ("Sam", None, False))
+        page = self.client.get("/").content.decode()
+        self.assertIn('value="Alex"', page)
+        self.assertIn('value="2023"', page)
+        self.client.post("/roster/", setup_form(self.game, action="remove-victor-0", **fields))
+        self.assertEqual([v.name for v in self.game.victors.all()], ["Sam"])
+        self.assertEqual(self.game.victors.get().position, 0)
+
+    def test_a_past_victor_is_shown_on_the_board_and_can_leave_the_room(self):
+        self.client.post("/roster/", setup_form(self.game, action="add-victor"))
+        self.client.post(
+            "/roster/",
+            setup_form(
+                self.game,
+                action="start",
+                **{"victor-name-0": "Alex", "victor-year-0": "2021", "victor-here-0": "on"},
+            ),
+        )
+        page = self.client.get("/").content.decode()
+        self.assertIn("Alex", page)
+        self.assertIn("2021", page)
+        self.assertEqual(self.client.post("/victors/0/present/", {"present": "0"}).status_code, 204)
+        self.assertFalse(self.game.victors.get().present)
+        self.assertEqual(self.client.post("/victors/5/present/", {"present": "1"}).status_code, 404)
+
+    def test_a_past_victor_in_the_room_sends_gifts_during_a_game(self):
+        """No tribute is in the room, so the only pop-ups are the past victor's gifts."""
+        self.client.post("/roster/", setup_form(self.game, action="add-victor"))
+        fields = {"victor-name-0": "Alex", "victor-here-0": "on"}
+        self.client.post("/roster/", setup_form(self.game, lambda position: False, action="start", **fields))
+        gifts = 0
+        for _ in range(100):
+            page = self.play_until_question_or_end()
+            if "New game" in page:
+                break
+            self.assertIn("as a past victor you sponsor a tribute", page)
+            gifts += 1
+            position = re.search(r'name="position" value="(\d+)"', page).group(1)
+            self.client.post("/decision/", {"position": position, "choice": 0})
+        if not gifts:
+            self.skipTest("this game happened to end without a gift")  # gifts are random
+        self.assertEqual(
+            LogEntry.objects.filter(line__group="item.from_victor", victor__name="Alex").count(), gifts
+        )
+        self.assertIn("<b>Alex</b>, victor of a past Games", self.client.get("/").content.decode())
 
     def test_absent_tributes_get_votes_from_the_dead_in_the_room(self):
         self.client.post(

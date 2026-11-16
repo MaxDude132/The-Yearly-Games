@@ -10,6 +10,7 @@ from .state import (
     HIDDEN,
     VOTES_PER_ROUND,
     Decision,
+    Victor,
     add_grudge,
     add_tag,
     find_item,
@@ -128,28 +129,24 @@ def ask_shield(arena, gamemaker, event):
 
 def start_of_day(arena):
     """At the start of each day, something may happen to the whole arena:
-    a fallen player in the room sends a sponsor gift, or one player in the room
-    (alive or not) decides which disaster hits everyone."""
+    a fallen player in the room places a bounty, someone in the room sends a sponsor gift,
+    or a fallen player in the room decides which disaster hits everyone.
+
+    Gifts come from the past victors in the room; when none is here, from the fallen in the room.
+    Disasters are only ever chosen by the fallen."""
     dice = arena.dice
-    players_in_room = [t for t in arena.tributes if t.present]
-    fallen_in_room = [t for t in players_in_room if not t.alive]
+    fallen_in_room = [t for t in arena.tributes if t.present and not t.alive]
+    victors_in_room = [victor for victor in arena.victors if victor.present]
+    sponsors = victors_in_room or fallen_in_room
     if fallen_in_room and dice.chance(0.2):
         arena.choices_left -= 1
         return place_bounty(arena, dice.pick(fallen_in_room))
-    if fallen_in_room and dice.chance(0.35):
+    if sponsors and dice.chance(0.35):
         arena.choices_left -= 1
-        sponsor = dice.pick(fallen_in_room)
-        candidates = dice.shuffle(arena.living())[:4]
-        gift = random_item(arena)
-        decision = Decision(
-            sponsor, "sponsor", len(candidates), item=gift, sponsor=sponsor, option_tributes=tuple(candidates)
-        )
-        receiver = candidates[arena.ask_player(decision)]
-        receiver.items.append(gift)
-        arena.add_to_story("item", arena.line("item.from_sponsor"), sponsor=sponsor, a=receiver, item=gift)
-    elif players_in_room and dice.chance(0.45):
+        send_gift(arena, dice.pick(sponsors))
+    elif fallen_in_room and dice.chance(0.45):
         arena.choices_left -= 1
-        gamemaker = dice.pick(players_in_room)
+        gamemaker = dice.pick(fallen_in_room)
         pool = list(arena.catalogue.arena_events)
         if not arena.feast_happened and arena.catalogue.feast:
             pool.append(arena.catalogue.feast)
@@ -166,6 +163,23 @@ def start_of_day(arena):
         feast(arena)
     elif arena.day > 1 and dice.chance(0.2):
         arena_event(arena, dice.pick(arena.catalogue.arena_events))
+
+
+def send_gift(arena, sponsor):
+    """A sponsor (a past victor, or a fallen player) chooses which of a few living tributes
+    receives a random item."""
+    candidates = arena.dice.shuffle(arena.living())[:4]
+    gift = random_item(arena)
+    if isinstance(sponsor, Victor):
+        question, line, who = "victor_sponsor", "item.from_victor", {"victor": sponsor}
+    else:
+        question, line, who = "sponsor", "item.from_sponsor", {"sponsor": sponsor}
+    decision = Decision(
+        sponsor, question, len(candidates), item=gift, option_tributes=tuple(candidates), **who
+    )
+    receiver = candidates[arena.ask_player(decision)]
+    receiver.items.append(gift)
+    arena.add_to_story("item", arena.line(line), a=receiver, item=gift, **who)
 
 
 def place_bounty(arena, sponsor):

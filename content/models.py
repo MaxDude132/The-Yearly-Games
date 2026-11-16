@@ -104,7 +104,8 @@ class StoryLine(models.Model):
     """One sentence the arena can tell. Lines in the same group are variations: one is picked at random.
 
     Placeholders in the text: {a} the tribute acting, {b} the other tribute, {item} an item,
-    {n} a number, {names} a list of names, {sponsor} a fallen player sending a gift.
+    {n} a number, {names} a list of names, {sponsor} a fallen player sending a gift,
+    {victor} a past victor (not a tribute) sending a gift.
     """
 
     group = models.CharField(max_length=80)

@@ -26,15 +26,40 @@
               <input type="checkbox" name="here-{{ tribute.position }}" class="size-[1.1rem] accent-ember" {% if tribute.present %}checked{% endif %}>
               {% translate "here" %}
             </label>
-            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" name="won-{{ tribute.position }}"
-              value="{{ tribute.past_winner_year|default_if_none:'' }}"
-              class="w-[4.2rem] rounded-md border border-line bg-panel px-2 py-2 text-sm text-gold placeholder:text-moss focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
-              placeholder="{% translate 'Won in' %}" title="{% translate 'Year this tribute won the Games, if they are a past winner' %}"
-              aria-label="{% translate 'Year' %} {% translate 'Tribute' %} {{ row.number }} {% translate 'won the Games' %}">
             <button type="submit" class="btn" name="action" value="remove-{{ tribute.position }}" aria-label="{% translate 'Remove' %} {{ row.number }}">×</button>
           </li>
           {% endwith %}{% endfor %}
         </ol>
+        <fieldset class="my-4 flex flex-col gap-2 rounded-md border border-line p-3">
+          <legend class="px-1 text-sm text-gold">{% translate "Past victors" %}</legend>
+          <p class="m-0 text-sm text-moss">{% translate "People who won an earlier Yearly Games. They are not tributes: when they are here, they sponsor tributes with gifts and may vote." %}</p>
+          {% if victors %}
+          <ol class="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(23rem,1fr))] gap-2 p-0">
+            {% for row in victors %}{% with victor=row.victor %}
+            <li class="flex items-center gap-2">
+              <label class="inline-flex cursor-pointer rounded-full transition duration-100 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-gold active:translate-y-0.5 active:scale-98" title="{% translate 'Photo of' %} {% translate 'Past victor' %} {{ row.number }}">
+                {% include "games/_avatar.html" with tribute=victor letters="" %}
+                <input type="file" name="victor-photo-{{ victor.position }}" data-photo accept="image/*"
+                  class="sr-only" aria-label="{% translate 'Photo of' %} {% translate 'Past victor' %} {{ row.number }}">
+              </label>
+              <input type="text" name="victor-name-{{ victor.position }}" value="{{ victor.name }}" maxlength="30"
+                class="min-w-0 flex-1 rounded-md border border-line bg-panel px-3 py-2 placeholder:text-moss focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                placeholder="{% translate 'Past victor' %} {{ row.number }}" aria-label="{% translate 'Past victor' %} {{ row.number }}">
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" name="victor-year-{{ victor.position }}"
+                value="{{ victor.year|default_if_none:'' }}"
+                class="w-[4.2rem] rounded-md border border-line bg-panel px-2 py-2 text-sm text-gold placeholder:text-moss focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                placeholder="{% translate 'Year' %}" aria-label="{% translate 'Year' %} {% translate 'Past victor' %} {{ row.number }}">
+              <label class="flex items-center gap-1 text-sm whitespace-nowrap text-moss">
+                <input type="checkbox" name="victor-here-{{ victor.position }}" class="size-[1.1rem] accent-ember" {% if victor.present %}checked{% endif %}>
+                {% translate "here" %}
+              </label>
+              <button type="submit" class="btn" name="action" value="remove-victor-{{ victor.position }}" aria-label="{% translate 'Remove' %} {% translate 'Past victor' %} {{ row.number }}">×</button>
+            </li>
+            {% endwith %}{% endfor %}
+          </ol>
+          {% endif %}
+          <div><button type="submit" class="btn" name="action" value="add-victor">{% translate "Add a past victor" %}</button></div>
+        </fieldset>
         <fieldset class="my-4 flex flex-col gap-2 rounded-md border border-line p-3">
           <legend class="px-1 text-sm text-gold">{% translate "Votes" %}</legend>
           <p class="m-0 text-sm text-moss">{% translate "When a tribute who is not in the room faces a big decision, these players vote for them." %}</p>

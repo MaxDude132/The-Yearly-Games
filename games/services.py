@@ -17,6 +17,7 @@ from games.engine.dice import Dice
 from games.engine.rounds import is_night_round, play_next_round
 from games.engine.state import Arena, Entry, NeedAnswer
 from games.engine.state import Tribute as EngineTribute
+from games.engine.state import Victor as EngineVictor
 
 DEFAULT_TRIBUTE_COUNT = 24
 MIN_TRIBUTES = 2
@@ -66,7 +67,7 @@ def start_game(game):
 
 @transaction.atomic
 def reset_game(game):
-    """Back to the setup screen. The roster (names, photos, who is here) is kept."""
+    """Back to the setup screen. The roster and the past victors (names, photos, who is here) are kept."""
     game.log.all().delete()
     game.answers.all().delete()
     models.TributeItem.objects.filter(tribute__game=game).delete()
@@ -92,7 +93,6 @@ def load_arena(game, catalogue, dice, ask):
         EngineTribute(
             id=row.position,
             present=row.present,
-            past_winner_year=row.past_winner_year,
             goal=row.goal,
             alive=row.alive,
             wounded=row.wounded,
@@ -111,6 +111,10 @@ def load_arena(game, catalogue, dice, ask):
     for tag in models.TributeTag.objects.filter(tribute__game=game):
         tributes[id_of[tag.tribute_id]].tags.append(tag.tag)
 
+    victor_rows = list(game.victors.order_by("position"))
+    victor_id_of = {row.pk: row.position for row in victor_rows}
+    victors = [EngineVictor(id=row.position, present=row.present) for row in victor_rows]
+
     def tribute_id(pk):
         return None if pk is None else id_of[pk]
 
@@ -124,6 +128,7 @@ def load_arena(game, catalogue, dice, ask):
             a=tribute_id(entry.a_id),
             b=tribute_id(entry.b_id),
             sponsor=tribute_id(entry.sponsor_id),
+            victor=victor_id_of.get(entry.victor_id),
             item=entry.item.key if entry.item_id else None,
             n=entry.n,
             names=tuple(id_of[name.tribute_id] for name in entry.names.all()),
@@ -140,6 +145,7 @@ def load_arena(game, catalogue, dice, ask):
         winner=tributes[id_of[game.winner_id]] if game.winner_id else None,
         voters=game.voters,
         no_conflict_votes=game.no_conflict_votes,
+        victors=victors,
     )  # fmt: skip
 
 
@@ -178,6 +184,7 @@ def save_arena(game, arena):
         for position, tag in enumerate(tribute.tags)
     )
 
+    victor_rows = list(game.victors.order_by("position"))
     new_entries = arena.log[arena.saved_log_length :]
     lines = {(line.group, line.variant): line for line in content.StoryLine.objects.all()}
     entry_rows = models.LogEntry.objects.bulk_create(
@@ -189,6 +196,7 @@ def save_arena(game, arena):
             a=None if entry.a is None else rows[entry.a],
             b=None if entry.b is None else rows[entry.b],
             sponsor=None if entry.sponsor is None else rows[entry.sponsor],
+            victor=None if entry.victor is None else victor_rows[entry.victor],
             item=item_rows[entry.item] if entry.item else None,
             n=entry.n,
         )

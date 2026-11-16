@@ -54,6 +54,19 @@
           <div class="text-[.8rem] text-moss">{% for part in card.details %}{% if not forloop.first %} · {% endif %}{{ part }}{% endfor %}</div>
         </div>
         {% endfor %}
+        {% if victors %}
+        <h3 class="m-0 mt-2 text-sm text-gold">{% translate "Past victors" %}</h3>
+        {% for card in victors %}
+        <div class="flex flex-wrap items-center gap-2 rounded-md border border-line bg-panel px-3 py-2">
+          {% include "games/_avatar.html" with tribute=card.victor letters=card.letters %}
+          <span class="min-w-24 flex-1 font-semibold wrap-anywhere">{{ card.name }}{% if card.year %} <span class="font-normal text-gold">· {{ card.year }}</span>{% endif %}</span>
+          <label class="flex items-center gap-1 text-sm whitespace-nowrap text-moss">
+            <input type="checkbox" class="size-[1.1rem] accent-ember" data-present-url="{% url 'victor_present' card.victor.position %}" {% if card.present %}checked{% endif %}>
+            {% translate "here" %}
+          </label>
+        </div>
+        {% endfor %}
+        {% endif %}
       </aside>
     </div>
     <footer class="flex gap-2.5 border-t border-line px-4 py-3">

@@ -152,11 +152,20 @@ msgstr "Personne : l'arène décide"
 msgid "The dead"
 msgstr "Les morts"
 
-msgid "Past winners"
-msgstr "Les anciens vainqueurs"
+msgid "Past victors"
+msgstr "Anciens vainqueurs"
 
-msgid "Past winners and the dead"
+msgid "Past victors and the dead"
 msgstr "Les anciens vainqueurs et les morts"
+
+msgid "Past victor"
+msgstr "Ancien vainqueur"
+
+msgid "Add a past victor"
+msgstr "Ajouter un ancien vainqueur"
+
+msgid "People who won an earlier Yearly Games. They are not tributes: when they are here, they sponsor tributes with gifts and may vote."
+msgstr "Les personnes qui ont gagné des Jeux annuels précédents. Ce ne sont pas des tributs : quand elles sont là, elles commanditent des tributs avec des cadeaux et peuvent voter."
 
 msgid "Everyone in the room"
 msgstr "Tout le monde dans la pièce"
@@ -173,20 +182,8 @@ msgstr "Qui vote"
 msgid "Fair play: nobody votes on a decision about their own tribute or alliance"
 msgstr "Fair-play : personne ne vote sur une décision qui concerne son propre tribut ou son alliance"
 
-msgid "Won in"
-msgstr "Gagné en"
-
-msgid "Year this tribute won the Games, if they are a past winner"
-msgstr "Année où ce tribut a gagné les Jeux, s'il est un ancien vainqueur"
-
 msgid "Year"
 msgstr "Année"
-
-msgid "won the Games"
-msgstr "a gagné les Jeux"
-
-msgid "Victor of %(year)s"
-msgstr "Vainqueur de %(year)s"
 
 msgid "Hunting"
 msgstr "Chasse"

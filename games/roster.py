@@ -6,10 +6,10 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 from PIL import Image, ImageOps
 
-from games.models import Game, Tribute
+from games.models import Game, PastVictor, Tribute
 
 NAME_MAX_LENGTH = Tribute._meta.get_field("name").max_length
-FIRST_YEAR, LAST_YEAR = 1900, 2200  # a past-winner year outside this range is ignored
+FIRST_YEAR, LAST_YEAR = 1900, 2200  # a past victor's year outside this range is ignored
 PHOTO_SIZE = 192  # pixels: a small square is plenty for a round avatar
 MAX_UPLOAD_BYTES = 12 * 1024 * 1024
 
@@ -28,19 +28,33 @@ def photo_to_small_square(uploaded):
     return ContentFile(buffer.getvalue())
 
 
+def save_photo(row, uploaded):
+    """Replaces a row's photo with the uploaded one. Not an image: the old photo is kept."""
+    photo = photo_to_small_square(uploaded) if uploaded else None
+    if photo:
+        row.photo.delete(save=False)
+        row.photo.save(f"{uuid.uuid4().hex}.jpg", photo, save=False)
+
+
 def save_roster(game, post, files):
-    """Applies the setup form: names, who is here, and any new photos."""
+    """Applies the setup form: tributes and past victors (names, who is here, photos) and the vote settings.
+    Tribute fields are named name-3, here-3, photo-3; past victor fields victor-name-3, victor-here-3..."""
     rows = list(game.tributes.order_by("position"))
     for row in rows:
         row.name = post.get(f"name-{row.position}", row.name).strip()[:NAME_MAX_LENGTH]
         row.present = f"here-{row.position}" in post
-        row.past_winner_year = parse_year(post.get(f"won-{row.position}", ""))
-        uploaded = files.get(f"photo-{row.position}")
-        photo = photo_to_small_square(uploaded) if uploaded else None
-        if photo:  # not an image: keep the old photo
-            row.photo.delete(save=False)
-            row.photo.save(f"{uuid.uuid4().hex}.jpg", photo, save=False)
-    Tribute.objects.bulk_update(rows, ["name", "present", "past_winner_year", "photo"])
+        save_photo(row, files.get(f"photo-{row.position}"))
+    Tribute.objects.bulk_update(rows, ["name", "present", "photo"])
+
+    victors = list(game.victors.order_by("position"))
+    for row in victors:
+        prefix = f"victor-{{}}-{row.position}"
+        row.name = post.get(prefix.format("name"), row.name).strip()[:NAME_MAX_LENGTH]
+        row.present = prefix.format("here") in post
+        row.year = parse_year(post.get(prefix.format("year"), ""))
+        save_photo(row, files.get(prefix.format("photo")))
+    PastVictor.objects.bulk_update(victors, ["name", "present", "year", "photo"])
+
     voters = post.get("voters", game.voters)
     if voters in Game.Voters.values:
         game.voters = voters
@@ -49,7 +63,7 @@ def save_roster(game, post, files):
 
 
 def parse_year(text):
-    """The year a tribute won the Games, or None if the field is empty or not a sensible year."""
+    """The year a past victor won the Games, or None if the field is empty or not a sensible year."""
     text = text.strip()
     if not text.isdigit():
         return None
@@ -63,11 +77,24 @@ def add_tribute(game):
 
 def remove_tribute(game, position):
     """Removes a tribute and closes the gap, so positions (and so districts) stay 0, 1, 2..."""
-    removed = game.tributes.filter(position=position).first()
+    remove_and_close_gap(game.tributes, position)
+
+
+def add_victor(game):
+    PastVictor.objects.create(game=game, position=game.victors.count())
+
+
+def remove_victor(game, position):
+    remove_and_close_gap(game.victors, position)
+
+
+def remove_and_close_gap(rows, position):
+    """Deletes the row at position and moves the rows after it up by one, so positions stay 0, 1, 2..."""
+    removed = rows.filter(position=position).first()
     if removed is None:
         return
     removed.photo.delete(save=False)
     removed.delete()
-    for row in game.tributes.filter(position__gt=position).order_by("position"):
+    for row in rows.filter(position__gt=position).order_by("position"):
         row.position -= 1
         row.save(update_fields=["position"])

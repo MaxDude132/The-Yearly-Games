@@ -17,9 +17,9 @@ class Game(models.Model):
         """Who votes for a tribute who is not in the room when they face a big decision."""
 
         NOBODY = "nobody", "Nobody (the arena decides)"
-        PAST_WINNERS = "past_winners", "Past winners"
+        PAST_WINNERS = "past_winners", "Past victors"
         DEAD = "dead", "The dead"
-        PAST_WINNERS_AND_DEAD = "past_winners_and_dead", "Past winners and the dead"
+        PAST_WINNERS_AND_DEAD = "past_winners_and_dead", "Past victors and the dead"
         EVERYONE = "everyone", "Everyone in the room"
 
     session_key = models.CharField(max_length=40, unique=True)
@@ -48,7 +48,6 @@ class Tribute(models.Model):
     name = models.CharField(max_length=30, blank=True)
     photo = models.ImageField(upload_to="photos/", blank=True)
     present = models.BooleanField(default=True)  # in the room: makes their own choices
-    past_winner_year = models.PositiveSmallIntegerField(null=True, blank=True)  # won the Games that year
     goal = models.CharField(
         max_length=10, blank=True
     )  # what the tribute does today: hunt, hide, scavenge, guard
@@ -68,6 +67,25 @@ class Tribute(models.Model):
 
     def __str__(self):
         return self.name or f"#{self.position + 1}"
+
+
+class PastVictor(models.Model):
+    """Someone who won an earlier Yearly Games. Not a tribute in this game: when in the room,
+    they sponsor tributes and may vote for absent ones (see Game.voters)."""
+
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="victors")
+    position = models.PositiveIntegerField()  # 0, 1, 2...
+    name = models.CharField(max_length=30, blank=True)
+    photo = models.ImageField(upload_to="photos/", blank=True)
+    present = models.BooleanField(default=True)  # in the room
+    year = models.PositiveSmallIntegerField(null=True, blank=True)  # the year they won (flavour only)
+
+    class Meta:
+        ordering = ["position"]
+        constraints = [models.UniqueConstraint(fields=["game", "position"], name="unique_victor_position")]
+
+    def __str__(self):
+        return self.name or f"victor #{self.position + 1}"
 
 
 class TributeItem(models.Model):
@@ -127,6 +145,8 @@ class LogEntry(models.Model):
     a = models.ForeignKey(Tribute, null=True, blank=True, on_delete=models.CASCADE, related_name="+")
     b = models.ForeignKey(Tribute, null=True, blank=True, on_delete=models.CASCADE, related_name="+")
     sponsor = models.ForeignKey(Tribute, null=True, blank=True, on_delete=models.CASCADE, related_name="+")
+    # A past victor who sent a gift. SET_NULL: removing a victor from the setup keeps old stories readable.
+    victor = models.ForeignKey(PastVictor, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     item = models.ForeignKey(Item, null=True, blank=True, on_delete=models.PROTECT, related_name="+")
     n = models.PositiveIntegerField(null=True, blank=True)
 

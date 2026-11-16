@@ -6,7 +6,7 @@ from django.test import TestCase
 from games.engine.dice import Dice
 from games.engine.memory import callback_for
 from games.engine.rounds import is_night_round, play_next_round
-from games.engine.state import BETRAYER, FEARED, HIDDEN, MERCIFUL, Arena, Tribute, add_tag, has_tag
+from games.engine.state import BETRAYER, FEARED, HIDDEN, MERCIFUL, Arena, Tribute, Victor, add_tag, has_tag
 from games.render import MissingValue, Translator
 from games.services import load_catalogue
 
@@ -23,11 +23,13 @@ class EngineTests(TestCase):
         cls.catalogue = load_catalogue()
         cls.translators = {code: Translator(code) for code in ("en", "fr")}
 
-    def play(self, seed, present, choose):
+    def play(self, seed, present, choose, victors=()):
         """Plays one whole game. present(i) says who is in the room; choose(dice, decision) answers."""
         dice = Dice(seed)
         tributes = [Tribute(id=i, present=present(i)) for i in range(TRIBUTES)]
-        arena = Arena(self.catalogue, dice, tributes, lambda decision: choose(dice, decision))
+        arena = Arena(
+            self.catalogue, dice, tributes, lambda decision: choose(dice, decision), victors=victors
+        )
         while not arena.winner:
             play_next_round(arena)
             self.assertLess(arena.round, 200, "a game did not end")
@@ -53,8 +55,9 @@ class EngineTests(TestCase):
 
         for seed in range(GAMES):
             choices.clear()
-            # Every second tribute is "in the room", so pop-ups happen.
-            arena = self.play(seed, lambda i: i % 2 == 0, answer_randomly)
+            # Every second tribute is "in the room", so pop-ups happen. One past victor is here, one is not.
+            victors = [Victor(id=0), Victor(id=1, present=False)]
+            arena = self.play(seed, lambda i: i % 2 == 0, answer_randomly, victors)
             self.assertEqual(len(arena.living()), 1, "there must be exactly one winner")
             wins[arena.winner.id] += 1
             total_rounds += arena.round
@@ -70,10 +73,11 @@ class EngineTests(TestCase):
 
     def assert_story_renders(self, arena):
         name_of = lambda tribute_id: f"T{tribute_id}"  # noqa: E731
+        victor_name_of = lambda victor_id: f"V{victor_id}"  # noqa: E731
         for translator in self.translators.values():
             for entry in arena.log:
                 try:
-                    html = translator.story(entry, name_of, strict=True)
+                    html = translator.story(entry, name_of, strict=True, victor_name_of=victor_name_of)
                 except MissingValue as error:
                     self.fail(str(error))
                 self.assertNotRegex(html, r"None|undefined|NaN|\{|\}")
@@ -335,41 +339,48 @@ class EngineTests(TestCase):
 
     # ---------- votes for absent tributes ----------
     def voting_arena(self, voters, no_conflict_votes=True):
-        """Tributes 0-5. 0 and 1 are in the room and alive, 2 is in the room and dead,
-        3 is a past winner in the room, 4 and 5 are absent."""
+        """Tributes 0-5: 0, 1 and 3 are in the room and alive, 2 is in the room and dead,
+        4 and 5 are absent. Past victor 0 is in the room, past victor 1 is not."""
         tributes = [Tribute(id=i, present=i < 4) for i in range(6)]
         tributes[2].alive = False
-        tributes[3].past_winner_year = 2023
+        victors = [Victor(id=0), Victor(id=1, present=False)]
         arena = Arena(
             self.catalogue, Dice(1), tributes, lambda decision: 0,
-            voters=voters, no_conflict_votes=no_conflict_votes,
+            voters=voters, no_conflict_votes=no_conflict_votes, victors=victors,
         )  # fmt: skip
         return arena, tributes
 
+    @staticmethod
+    def label(person):
+        """t3 for tribute 3, v0 for past victor 0."""
+        return f"{'v' if isinstance(person, Victor) else 't'}{person.id}"
+
     def voter_ids(self, voters, no_conflict_votes=True, b=5):
         arena, tributes = self.voting_arena(voters, no_conflict_votes)
-        return [t.id for t in arena.voters_for(tributes[4], {"a": tributes[4], "b": tributes[b]})]
+        return [self.label(v) for v in arena.voters_for(tributes[4], {"a": tributes[4], "b": tributes[b]})]
 
-    def test_each_voter_setting_picks_the_right_players(self):
+    def test_each_voter_setting_picks_the_right_people(self):
         self.assertEqual(self.voter_ids("nobody"), [])
-        self.assertEqual(self.voter_ids("dead"), [2])
-        self.assertEqual(self.voter_ids("past_winners"), [3])
-        self.assertEqual(self.voter_ids("past_winners_and_dead"), [2, 3])
-        self.assertEqual(self.voter_ids("everyone"), [0, 1, 2, 3])
+        self.assertEqual(self.voter_ids("dead"), ["t2"])
+        self.assertEqual(self.voter_ids("past_winners"), ["v0"])  # past victors in the room
+        self.assertEqual(self.voter_ids("past_winners_and_dead"), ["t2", "v0"])
+        self.assertEqual(self.voter_ids("everyone"), ["t0", "t1", "t2", "t3", "v0"])
 
     def test_fair_play_keeps_players_out_of_votes_about_them_or_their_alliance(self):
-        self.assertEqual(self.voter_ids("everyone", b=0), [1, 2, 3])  # 0 is the other tribute
+        self.assertEqual(self.voter_ids("everyone", b=0), ["t1", "t2", "t3", "v0"])  # 0 is the other tribute
         arena, tributes = self.voting_arena("everyone")
         tributes[1].alliance = tributes[5].alliance = 1
         voters = arena.voters_for(tributes[4], {"a": tributes[4], "b": tributes[5]})
-        self.assertEqual([t.id for t in voters], [0, 2, 3])  # 1 is allied with 5
-        self.assertEqual(self.voter_ids("everyone", no_conflict_votes=False, b=0), [0, 1, 2, 3])
+        self.assertEqual([self.label(v) for v in voters], ["t0", "t2", "t3", "v0"])  # 1 is allied with 5
+        self.assertEqual(
+            self.voter_ids("everyone", no_conflict_votes=False, b=0), ["t0", "t1", "t2", "t3", "v0"]
+        )
 
     def test_a_vote_asks_each_voter_and_the_majority_wins(self):
         arena, tributes = self.voting_arena("everyone")
         arena.choices_left, arena.votes_left = 5, 1
         asked = []
-        answers = iter([2, 2, 0, 1])
+        answers = iter([2, 2, 0, 1, 2])
 
         def ask(decision):
             asked.append(decision)
@@ -378,8 +389,8 @@ class EngineTests(TestCase):
         arena.ask = ask
         choice = arena.decide(tributes[4], "meeting", [1, 1, 1], a=tributes[4], b=tributes[5])
         self.assertEqual(choice, 2)
-        self.assertEqual([d.tribute.id for d in asked], [0, 1, 2, 3])
-        self.assertTrue(all(d.vote_for is tributes[4] and d.vote_total == 4 for d in asked))
+        self.assertEqual([self.label(d.tribute) for d in asked], ["t0", "t1", "t2", "t3", "v0"])
+        self.assertTrue(all(d.vote_for is tributes[4] and d.vote_total == 5 for d in asked))
         self.assertEqual(arena.votes_left, 0)
         # Only one vote per round: the next big decision goes to the dice.
         arena.ask = lambda decision: self.fail("asked again")
@@ -393,6 +404,45 @@ class EngineTests(TestCase):
             arena.ask = lambda decision, answers=answers: next(answers)
             choice = arena.decide(tributes[4], "meeting", [1, 1, 1], a=tributes[4], b=tributes[5])
             self.assertIn(choice, (0, 2))
+
+    # ---------- past victors and the fallen at the start of a day ----------
+    def start_of_day_asks(self, victors, fallen_here, games=300):
+        """Runs start_of_day many times and returns every decision it asked."""
+        from games.engine.rounds import start_of_day
+
+        asked = []
+        for seed in range(games):
+            tributes = [Tribute(id=i, present=i < 4) for i in range(8)]
+            for tribute in tributes[:fallen_here]:
+                tribute.alive = False
+            arena = Arena(
+                self.catalogue, Dice(seed), tributes, lambda d: asked.append(d) or 0, victors=victors
+            )
+            arena.day = 2
+            start_of_day(arena)
+        return asked
+
+    def test_past_victors_in_the_room_send_the_gifts(self):
+        asked = self.start_of_day_asks([Victor(id=0), Victor(id=1)], fallen_here=2)
+        gifts = [d for d in asked if d.question in ("sponsor", "victor_sponsor")]
+        self.assertTrue(gifts)
+        self.assertTrue(all(d.question == "victor_sponsor" and isinstance(d.tribute, Victor) for d in gifts))
+        self.assertTrue(all(d.victor is d.tribute for d in gifts))
+
+    def test_the_fallen_send_the_gifts_when_no_past_victor_is_here(self):
+        asked = self.start_of_day_asks([Victor(id=0, present=False)], fallen_here=2)
+        gifts = [d for d in asked if d.question in ("sponsor", "victor_sponsor")]
+        self.assertTrue(gifts)
+        self.assertTrue(all(d.question == "sponsor" and not d.tribute.alive for d in gifts))
+
+    def test_only_the_fallen_choose_disasters(self):
+        asked = self.start_of_day_asks([Victor(id=0)], fallen_here=2)
+        disasters = [d for d in asked if d.question == "gamemaker"]
+        self.assertTrue(disasters)
+        self.assertTrue(all(isinstance(d.tribute, Tribute) and not d.tribute.alive for d in disasters))
+        # Nobody fallen in the room: no disaster is ever offered.
+        asked = self.start_of_day_asks([Victor(id=0)], fallen_here=0)
+        self.assertFalse([d for d in asked if d.question == "gamemaker"])
 
     def test_present_tributes_and_small_questions_are_never_voted_on(self):
         arena, tributes = self.voting_arena("everyone")
@@ -413,10 +463,9 @@ class EngineTests(TestCase):
                 swapped = game % 2 == 1
                 dice = Dice(30_000 + game)
                 tributes = [Tribute(id=i, present=(i % 2 == 0) != swapped) for i in range(TRIBUTES)]
-                for tribute in tributes[::5]:
-                    tribute.past_winner_year = 2020
+                victors = [Victor(id=i) for i in range(3)]  # past victors in the room
                 answer = lambda decision, dice=dice: dice.int(decision.option_count)  # noqa: E731
-                arena = Arena(self.catalogue, dice, tributes, answer, voters=voters)
+                arena = Arena(self.catalogue, dice, tributes, answer, voters=voters, victors=victors)
                 while not arena.winner:
                     play_next_round(arena)
                 present_wins += arena.winner.present
