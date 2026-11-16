@@ -355,5 +355,14 @@
 {"model":"content.storylinetranslation","fields":{"line":["callback.unfinished_business",0],"language":"fr","text":"{a} avait blessé {b} plus tôt. Cette fois, c'est terminé."}},
 {"model":"content.storyline","fields":{"group":"callback.district_partners","variant":0}},
 {"model":"content.storylinetranslation","fields":{"line":["callback.district_partners",0],"language":"en","text":"{a} and {b} came from the same district. Only one of them goes home."}},
-{"model":"content.storylinetranslation","fields":{"line":["callback.district_partners",0],"language":"fr","text":"{a} et {b} venaient du même district. Un seul rentrera."}}
+{"model":"content.storylinetranslation","fields":{"line":["callback.district_partners",0],"language":"fr","text":"{a} et {b} venaient du même district. Un seul rentrera."}},
+{"model":"content.storyline","fields":{"group":"reputation.feared","variant":0}},
+{"model":"content.storylinetranslation","fields":{"line":["reputation.feared",0],"language":"en","text":"Word spreads about {a}. Nobody wants to meet them in the dark."}},
+{"model":"content.storylinetranslation","fields":{"line":["reputation.feared",0],"language":"fr","text":"La rumeur circule à propos de {a}. Personne ne veut le croiser dans le noir."}},
+{"model":"content.storyline","fields":{"group":"encounter.cold_handshake","variant":0}},
+{"model":"content.storylinetranslation","fields":{"line":["encounter.cold_handshake",0],"language":"en","text":"{a} and {b} almost team up, but someone remembers an old betrayal. The handshake never happens."}},
+{"model":"content.storylinetranslation","fields":{"line":["encounter.cold_handshake",0],"language":"fr","text":"{a} et {b} sont sur le point de s'allier, mais quelqu'un se souvient d'une ancienne trahison. La poignée de main n'a jamais lieu."}},
+{"model":"content.storyline","fields":{"group":"encounter.hidden_well","variant":0}},
+{"model":"content.storylinetranslation","fields":{"line":["encounter.hidden_well",0],"language":"en","text":"{a} passes right by {b}'s hiding place without noticing a thing."}},
+{"model":"content.storylinetranslation","fields":{"line":["encounter.hidden_well",0],"language":"fr","text":"{a} passe juste à côté de la cachette de {b} sans rien remarquer."}}
 ]

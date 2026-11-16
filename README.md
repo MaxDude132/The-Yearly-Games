@@ -11,6 +11,7 @@ What makes each game different:
 - **Districts:** partners start as friends (allied), rivals (they hate each other) or strangers.
 - **Items:** weapons, armour, ointments, food, rope, gear from the Cornucopia, sponsors and the feast. Items help most of the time, not always: weapons break, medicine can fail, food can be spoiled.
 - **Alliances and grudges:** tributes team up, betray each other late in the game, and hunt the people who hurt their friends.
+- **Reputation and memory:** killing three times makes a tribute *feared* (a small fighting bonus, but others go looking for them). Rushing the Cornucopia and killing makes you feared too. Fleeing the Bloodbath leaves you *hidden* for the first two nights, so sleepers are sometimes walked past. Betraying an ally makes you a *betrayer*: later alliances with you can fall through. When a tribute kills someone they have history with, the story says so (betrayal, theft, mercy, old alliance, a wound, same district). The pop-up also shows how the tributes involved are doing.
 - **Fallen players keep playing:** dead players in the room send sponsor gifts, and any player in the room may be handed the Gamemaker controls to pick the disaster that hits everyone.
 - **Final duel:** the last two each pick a tactic (charge, ambush, wait). It works like rock-paper-scissors: the better tactic gives an edge, but luck decides.
 - **Save:** the game is saved on the server after every round and belongs to your browser (a session cookie). Close the page and pick up later.
@@ -41,7 +42,8 @@ games/
   engine/                 the game rules, ported from the old JavaScript
     dice.py               random numbers, picks, shuffles, weighted choices
     catalogue.py          which items, events, lines and questions exist (no text)
-    state.py              tributes, the story entries, shared rules (kill, grudges, who decides)
+    state.py              tributes, the story entries, shared rules (kill, grudges, tags, who decides)
+    memory.py             looks back through the story when someone is killed and tells a callback line
     combat.py             how a fight is decided
     events.py             arena disasters, the feast, accidents, berries, traps, using items
     encounters.py         two tributes meet: fights, alliances, sleeping targets, betrayal
@@ -83,7 +85,7 @@ A web request cannot wait for a player to tap. So a round is replayed from its s
 - **Odds:** the numbers in `games/engine/` (for example `[45, 20, 35]` means 45% attack, 20% alliance, 35% slip away).
 
 ### Check the game rules
-`make test` plays 5000 games with random answers and checks that every game ends with exactly one winner, no story line is missing text, and every tribute wins about equally often. It also checks that players in the room don't win more often than absent ones, whatever options they tend to pick: choices change the story, not the odds. Other tests cover the pages, the questions that pause a round, photos and languages.
+`make test` plays 5000 games with random answers and checks that every game ends with exactly one winner, no story line is missing text, and every tribute wins about equally often. It also checks that players in the room don't win more often than absent ones, whatever options they tend to pick, and that rushing, grabbing a pack and fleeing the Bloodbath lead to a win about equally often. Choices can change a tribute's odds (reputation, items), but the dice that play absent tributes must play about as well as a person. Other tests cover the pages, the questions that pause a round, photos and languages.
 
 ### Deploying (Railway)
 The Railway project is described in `.railway/railway.py` (Railway Infrastructure as Code, Python authoring, beta). It declares three resources:

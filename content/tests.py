@@ -79,7 +79,16 @@ class ContentTests(TestCase):
 
     def test_the_engine_finds_every_group_it_tells(self):
         catalogue = load_catalogue()
-        groups = [*BOND_GROUPS, *CALLBACK_GROUPS, "phase.bloodbath", "phase.day", "phase.night"]
+        groups = [
+            *BOND_GROUPS,
+            *CALLBACK_GROUPS,
+            "reputation.feared",
+            "encounter.cold_handshake",
+            "encounter.hidden_well",
+            "phase.bloodbath",
+            "phase.day",
+            "phase.night",
+        ]
         for group in [*groups, "finale.announced"]:
             self.assertTrue(catalogue.variants(group), group)
         self.assertEqual(len(catalogue.variants("finale.tactic")), 3)

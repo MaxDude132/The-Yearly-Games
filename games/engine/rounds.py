@@ -4,9 +4,10 @@ from .catalogue import ARMOR, FOOD, GEAR, HEALING, TRAP, WEAPON
 from .combat import fight
 from .encounters import ally_moment, meet_someone
 from .events import arena_event, build_trap, feast, hazard, random_item, strange_berries, use_random_item
-from .state import Decision, add_grudge, find_item, same_alliance
+from .state import FEARED, HIDDEN, Decision, add_grudge, add_tag, find_item, remove_tag, same_alliance
 
 MAX_CHOICES_PER_ROUND = 2  # keeps the game moving: about 15 to 20 pop-ups per game
+HIDDEN_UNTIL_DAY = 3  # a tribute who fled the Bloodbath stays hidden for the first two nights
 
 # ---------- the Bloodbath ----------
 # Balance (tuned with the simulation tests): rushing, grabbing a pack and fleeing
@@ -57,6 +58,7 @@ def bloodbath(arena):
             else:
                 arena.add_to_story("bad", arena.line("bloodbath.empty_pack"), a=tribute)
         else:
+            add_tag(tribute, HIDDEN)
             arena.add_to_story("", arena.pick_line("bloodbath.flees"), a=tribute)
 
     # Rushers fight each other in pairs (district friends spare each other).
@@ -64,6 +66,9 @@ def bloodbath(arena):
         a, b = rushers[i], rushers[i + 1]
         if not same_alliance(a, b):
             fight(arena, a, b, 0, RUSHER_FIGHT_LETHALITY)
+    for rusher in rushers:
+        if rusher.alive and rusher.kills and add_tag(rusher, FEARED):
+            arena.add_to_story("bad", arena.line("reputation.feared"), a=rusher)
 
     # Some pack grabbers get caught by a surviving rusher.
     for tribute in pack_grabbers:
@@ -219,6 +224,9 @@ def play_next_round(arena):
         title, style = "phase.day", "heading"
     arena.add_to_story(style, arena.line(title), n=arena.day)
 
+    if arena.day >= HIDDEN_UNTIL_DAY:
+        for tribute in arena.tributes:
+            remove_tag(tribute, HIDDEN)
     if arena.round == 1:
         bloodbath(arena)
     elif is_finale:

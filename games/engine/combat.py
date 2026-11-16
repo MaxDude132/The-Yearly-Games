@@ -1,10 +1,11 @@
 """How a fight between two tributes plays out."""
 
 from .catalogue import ARMOR, WEAPON
-from .state import add_grudge, find_item, remove_item
+from .state import FEARED, add_grudge, find_item, has_tag, remove_item
 
 WEAPON_BONUS = 0.35
 ARMOR_BONUS = 0.1
+FEARED_BONUS = 0.08  # opponents hesitate (the price: feared tributes are sought out, see encounters)
 WOUND_PENALTY = 0.25
 WEAPON_BREAK_CHANCE = 0.15  # a weapon is never a guarantee
 ARMOR_SAVE_CHANCE = 0.4
@@ -23,6 +24,7 @@ def fighting_strength(arena, tribute):
         + (WEAPON_BONUS if weapon else 0)
         + (ARMOR_BONUS if find_item(tribute, ARMOR) else 0)
         - (WOUND_PENALTY if tribute.wounded else 0)
+        + (FEARED_BONUS if has_tag(tribute, FEARED) else 0)
     )
 
 

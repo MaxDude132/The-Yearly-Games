@@ -130,3 +130,12 @@ msgstr "%(name)s fait partie d'une alliance de %(count)s."
 
 msgid "Tributes left: %(count)s"
 msgstr "Tributs restants : %(count)s"
+
+msgid "Feared"
+msgstr "Redouté"
+
+msgid "Hidden"
+msgstr "Caché"
+
+msgid "Betrayer"
+msgstr "Traître"

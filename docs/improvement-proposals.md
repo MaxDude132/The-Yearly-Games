@@ -15,6 +15,7 @@ Each proposal has an ID so we can refer to it ("drop 2c", "do 1a first"). Edit t
 ## 1. Choices carry forward
 
 ### 1a. Reputation tags
+**Partly implemented**: tags `feared`, `hidden` and `betrayer` (table `TributeTag`). `merciful` and `trusted` are not done. See `games/engine/state.py`, `combat.py`, `encounters.py`, `rounds.py`.
 Per-tribute tags such as `Betrayer`, `Merciful`, `Feared`, `Trusted`, stored like `Grudge`. They change later odds: betraying an ally lowers everyone's alliance acceptance toward you, sparing someone creates a debt that can trigger a rescue later.
 - Touches: `games/models.py` (new table), `state.py`, `encounters.py`, new story lines.
 - Cost: medium. Risk: needs the balance rule (3a) to change.
@@ -28,6 +29,7 @@ Lines that fire when an earlier event matters ("X remembers that Y spared them i
 - Decision:
 
 ### 1c. Bloodbath sets your starting condition
+**Implemented**: a rusher who kills becomes feared, a fleer is hidden for two nights.
 Rushers start `Feared`, pack grabbers keep their item advantage, fleers start `Hidden` (safe from sleeper attacks on night 1).
 - Cost: low once 1a exists.
 - Decision:
@@ -64,6 +66,7 @@ The Gamemaker picks an event and also who it hits, or who gets a mercy.
 ## 3. Rebalance so choices can matter
 
 ### 3a. Relax the balance rule
+**Implemented**: the room-versus-absent test and a new "no Bloodbath option clearly better" test replace the idea that every individual option is equal.
 **Accepted** (see "Answers so far"). Replace "every option is equally good" with "being in the room doesn't raise your overall win rate". This permits safe-versus-bold options (low versus high variance) and betrayal that pays off now and costs later. The simulation test must change with it.
 - Touches: `games/tests/test_engine.py`, README section "Check the game rules", the tuned constants in `combat.py`, `encounters.py`, `rounds.py`.
 - Cost: medium. Prerequisite for the full effect of 1a and 2a.

@@ -3,9 +3,14 @@
 from .catalogue import HEALING
 from .combat import fight
 from .state import (
+    BETRAYER,
+    FEARED,
+    HIDDEN,
     add_grudge,
+    add_tag,
     find_item,
     forgive_grudge,
+    has_tag,
     holds_grudge,
     remove_item,
     same_alliance,
@@ -20,6 +25,9 @@ SPOTTED_WHILE_SLIPPING = 0.2  # chance the other tribute notices you sneaking of
 CHASE_EDGE = 0.15  # the chaser's advantage
 STEAL_SUCCESS = 0.55  # stealing from a sleeper
 REFUSAL_STARTS_FIGHT = 0.25  # a refused alliance can turn ugly
+FEARED_SOUGHT = 0.2  # chance a tribute goes looking for a feared rival instead of a random one
+HIDDEN_SKIPPED = 0.5  # chance a sleeper who hid well is walked past at night
+COLD_HANDSHAKE = 0.4  # chance an alliance with a known betrayer falls through
 
 
 def meet_someone(arena, tribute, busy, is_night):
@@ -38,9 +46,17 @@ def meet_someone(arena, tribute, busy, is_night):
         group = "filler.night" if is_night else "filler.day"
         return arena.add_to_story("", arena.pick_line(group), a=tribute)
     enemies = [other for other in candidates if holds_grudge(tribute, other)]
-    other = dice.pick(enemies) if enemies and dice.chance(0.6) else dice.pick(candidates)
+    feared = [other for other in candidates if has_tag(other, FEARED) and not has_tag(tribute, FEARED)]
+    if enemies and dice.chance(0.6):
+        other = dice.pick(enemies)
+    elif feared and dice.chance(FEARED_SOUGHT):
+        other = dice.pick(feared)
+    else:
+        other = dice.pick(candidates)
     busy.add(other)
     if is_night and dice.chance(0.35):
+        if has_tag(other, HIDDEN) and dice.chance(HIDDEN_SKIPPED):
+            return arena.add_to_story("", arena.line("encounter.hidden_well"), a=tribute, b=other)
         return find_sleeper(arena, tribute, other)
     return face_to_face(arena, tribute, other)
 
@@ -110,7 +126,10 @@ def offer_alliance(arena, tribute, other):
     alliance_is_full = (
         host.alliance and len([t for t in arena.living() if t.alliance == host.alliance]) >= MAX_ALLIANCE_SIZE
     )
-    if answer == 0 and not alliance_is_full:
+    doubted = BETRAYER in (*tribute.tags, *other.tags)  # someone here betrayed an ally before
+    if answer == 0 and not alliance_is_full and doubted and arena.dice.chance(COLD_HANDSHAKE):
+        arena.add_to_story("", arena.line("encounter.cold_handshake"), a=tribute, b=other)
+    elif answer == 0 and not alliance_is_full:
         if not host.alliance:
             arena.alliance_count += 1
             host.alliance = arena.alliance_count
@@ -143,6 +162,7 @@ def ally_moment(arena, tribute, ally):
             weights = [65, 35]
         choice = arena.decide(tribute, "loyalty", weights, a=tribute, b=ally)
     if choice == 1:
+        add_tag(tribute, BETRAYER)
         tribute.alliance = 0
         arena.dissolve_lonely_alliances()
         add_grudge(ally, tribute)

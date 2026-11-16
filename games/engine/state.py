@@ -8,6 +8,9 @@ from dataclasses import dataclass, field
 from .catalogue import Item, Line
 from .memory import remember_kill
 
+FEARED, HIDDEN, BETRAYER = "feared", "hidden", "betrayer"
+FEARED_AFTER_KILLS = 3
+
 
 @dataclass(eq=False)
 class Tribute:
@@ -18,6 +21,7 @@ class Tribute:
     items: list[Item] = field(default_factory=list)
     alliance: int = 0  # 0 means no alliance; the same number means the same alliance
     grudges: list[int] = field(default_factory=list)  # ids of tributes this one wants revenge on
+    tags: list[str] = field(default_factory=list)  # reputation: FEARED, HIDDEN, BETRAYER
     kills: int = 0
     died_on_day: int = 0
 
@@ -140,6 +144,8 @@ class Arena:
         self.dissolve_lonely_alliances()
         if killer:
             remember_kill(self, killer, victim)
+            if killer.kills == FEARED_AFTER_KILLS and add_tag(killer, FEARED):
+                self.add_to_story("bad", self.line("reputation.feared"), a=killer)
 
     # ---------- decisions ----------
 
@@ -185,3 +191,20 @@ def forgive_grudge(tribute, other):
 
 def same_alliance(a, b):
     return a.alliance != 0 and a.alliance == b.alliance
+
+
+def has_tag(tribute, tag):
+    return tag in tribute.tags
+
+
+def add_tag(tribute, tag):
+    """Gives a reputation tag. Returns True if the tribute did not have it yet."""
+    if tag in tribute.tags:
+        return False
+    tribute.tags.append(tag)
+    return True
+
+
+def remove_tag(tribute, tag):
+    if tag in tribute.tags:
+        tribute.tags.remove(tag)

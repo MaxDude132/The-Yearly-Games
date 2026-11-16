@@ -70,6 +70,7 @@ def reset_game(game):
     game.log.all().delete()
     game.answers.all().delete()
     models.TributeItem.objects.filter(tribute__game=game).delete()
+    models.TributeTag.objects.filter(tribute__game=game).delete()
     models.Grudge.objects.filter(tribute__game=game).delete()
     game.tributes.update(alive=True, wounded=False, alliance=0, kills=0, died_on_day=0)
     game.status = models.Game.Status.SETUP
@@ -102,6 +103,8 @@ def load_arena(game, catalogue, dice, ask):
         tributes[id_of[carried.tribute_id]].items.append(catalogue.item(carried.item.key))
     for grudge in models.Grudge.objects.filter(tribute__game=game):
         tributes[id_of[grudge.tribute_id]].grudges.append(id_of[grudge.target_id])
+    for tag in models.TributeTag.objects.filter(tribute__game=game):
+        tributes[id_of[tag.tribute_id]].tags.append(tag.tag)
 
     def tribute_id(pk):
         return None if pk is None else id_of[pk]
@@ -145,6 +148,7 @@ def save_arena(game, arena):
 
     models.TributeItem.objects.filter(tribute__game=game).delete()
     models.Grudge.objects.filter(tribute__game=game).delete()
+    models.TributeTag.objects.filter(tribute__game=game).delete()
     models.TributeItem.objects.bulk_create(
         models.TributeItem(tribute=row, position=position, item=item_rows[item.key])
         for row, tribute in zip(rows, arena.tributes, strict=True)
@@ -154,6 +158,11 @@ def save_arena(game, arena):
         models.Grudge(tribute=row, position=position, target=rows[target])
         for row, tribute in zip(rows, arena.tributes, strict=True)
         for position, target in enumerate(tribute.grudges)
+    )
+    models.TributeTag.objects.bulk_create(
+        models.TributeTag(tribute=row, position=position, tag=tag)
+        for row, tribute in zip(rows, arena.tributes, strict=True)
+        for position, tag in enumerate(tribute.tags)
     )
 
     new_entries = arena.log[arena.saved_log_length :]

@@ -147,6 +147,8 @@ def _card(row, tribute, arena, translator, names):
         details.append(mark_safe(f'<span class="text-moon">{alliance}</span>'))
     if tribute.kills:
         details.append(f"{tribute.kills} {_('kills')}")
+    if tribute.alive and tribute.tags:
+        details.append(mark_safe(f'<span class="text-gold">{escape(", ".join(_tag_labels(tribute)))}</span>'))
     if tribute.alive and enemy_names:
         details.append(f"{_('Grudge against')} {', '.join(enemy_names)}")
 
@@ -186,6 +188,11 @@ def _decision_context(decision, rows, translator, names, game, arena):
     }
 
 
+def _tag_labels(tribute):
+    labels = {"feared": _("Feared"), "hidden": _("Hidden"), "betrayer": _("Betrayer")}
+    return [labels[tag] for tag in tribute.tags]
+
+
 def _status(tribute):
     return _("Wounded") if tribute.wounded else _("Healthy")
 
@@ -204,6 +211,7 @@ def _person(tribute, translator, names):
     return {
         "name": names[tribute.id],
         "status": _status(tribute),
+        "tags": ", ".join(_tag_labels(tribute)),
         "items": _("Carries: %(items)s") % {"items": items} if items else _("Carries nothing"),
     }
 

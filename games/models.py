@@ -74,6 +74,20 @@ class Grudge(models.Model):
         constraints = [models.UniqueConstraint(fields=["tribute", "position"], name="unique_grudge_position")]
 
 
+class TributeTag(models.Model):
+    """A reputation the story gave a tribute: feared, hidden or betrayer."""
+
+    tribute = models.ForeignKey(Tribute, on_delete=models.CASCADE, related_name="tags")
+    position = models.PositiveIntegerField()
+    tag = models.CharField(max_length=20)
+
+    class Meta:
+        ordering = ["position"]
+        constraints = [
+            models.UniqueConstraint(fields=["tribute", "position"], name="unique_tribute_tag_position")
+        ]
+
+
 class LogEntry(models.Model):
     """One line of the story. The line and its values are stored, never the text, so each viewer
     reads it in their own language."""
