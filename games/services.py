@@ -103,6 +103,8 @@ def load_arena(game, catalogue, dice, ask):
         tributes[id_of[carried.tribute_id]].items.append(catalogue.item(carried.item.key))
     for grudge in models.Grudge.objects.filter(tribute__game=game):
         tributes[id_of[grudge.tribute_id]].grudges.append(id_of[grudge.target_id])
+    for debt in models.Debt.objects.filter(tribute__game=game):
+        tributes[id_of[debt.tribute_id]].debts.append(id_of[debt.target_id])
     for tag in models.TributeTag.objects.filter(tribute__game=game):
         tributes[id_of[tag.tribute_id]].tags.append(tag.tag)
 
@@ -148,6 +150,7 @@ def save_arena(game, arena):
 
     models.TributeItem.objects.filter(tribute__game=game).delete()
     models.Grudge.objects.filter(tribute__game=game).delete()
+    models.Debt.objects.filter(tribute__game=game).delete()
     models.TributeTag.objects.filter(tribute__game=game).delete()
     models.TributeItem.objects.bulk_create(
         models.TributeItem(tribute=row, position=position, item=item_rows[item.key])
@@ -158,6 +161,11 @@ def save_arena(game, arena):
         models.Grudge(tribute=row, position=position, target=rows[target])
         for row, tribute in zip(rows, arena.tributes, strict=True)
         for position, target in enumerate(tribute.grudges)
+    )
+    models.Debt.objects.bulk_create(
+        models.Debt(tribute=row, position=position, target=rows[target])
+        for row, tribute in zip(rows, arena.tributes, strict=True)
+        for position, target in enumerate(tribute.debts)
     )
     models.TributeTag.objects.bulk_create(
         models.TributeTag(tribute=row, position=position, tag=tag)

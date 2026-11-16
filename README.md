@@ -5,14 +5,15 @@ A Hunger Games-style simulator for our yearly game with friends. 24 tributes, on
 1. Type the names in district order: tributes 1 & 2 are District 1, tributes 3 & 4 District 2, and so on. Tap the circle next to a name to add a photo.
 2. Tick **here** for everyone in the room. You can change this during the game on the tribute board.
 3. Tap through the rounds: the Bloodbath, then Day 1, Night 1, Day 2...
-4. When a player in the room has a choice to make, a pop-up shows their name. Pass the phone or tap for them. The app decides for everyone who isn't there.
+4. When a player in the room has a choice to make, a pop-up shows their name, how the tributes involved are doing and what links them. A normal round has up to 3 pop-ups, 4 when 8 or fewer are left, 6 when 4 or fewer are left. Pass the phone or tap for them. The app decides for everyone who isn't there.
 
 What makes each game different:
 - **Districts:** partners start as friends (allied), rivals (they hate each other) or strangers.
 - **Items:** weapons, armour, ointments, food, rope, gear from the Cornucopia, sponsors and the feast. Items help most of the time, not always: weapons break, medicine can fail, food can be spoiled.
 - **Alliances and grudges:** tributes team up, betray each other late in the game, and hunt the people who hurt their friends.
 - **Reputation and memory:** killing three times makes a tribute *feared* (a small fighting bonus, but others go looking for them). Rushing the Cornucopia and killing makes you feared too. Fleeing the Bloodbath leaves you *hidden* for the first two nights, so sleepers are sometimes walked past. Betraying an ally makes you a *betrayer*: later alliances with you can fall through. When a tribute kills someone they have history with, the story says so (betrayal, theft, mercy, old alliance, a wound, same district). The pop-up also shows how the tributes involved are doing.
-- **Fallen players keep playing:** dead players in the room send sponsor gifts, and any player in the room may be handed the Gamemaker controls to pick the disaster that hits everyone.
+- **Fallen players keep playing:** dead players in the room send sponsor gifts, and any player in the room may be handed the Gamemaker controls to pick the disaster that hits everyone. After choosing a disaster, the Gamemaker shields one of four tributes from it (never themselves).
+- **Mercy:** when a fight would kill, the winner may spare the loser. The loser is wounded, hands over something they carry, and owes the winner a life: if they ever win a fight against them, they let them go. Sparing makes you *merciful*, which can turn a refused alliance into a yes. No mercy in the final duel.
 - **Final duel:** the last two each pick a tactic (charge, ambush, wait). It works like rock-paper-scissors: the better tactic gives an edge, but luck decides.
 - **Save:** the game is saved on the server after every round and belongs to your browser (a session cookie). Close the page and pick up later.
 

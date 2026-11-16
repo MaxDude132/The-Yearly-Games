@@ -6,7 +6,7 @@ from django.test import TestCase
 from games.engine.dice import Dice
 from games.engine.memory import callback_for
 from games.engine.rounds import is_night_round, play_next_round
-from games.engine.state import BETRAYER, FEARED, HIDDEN, Arena, Tribute, add_tag, has_tag
+from games.engine.state import BETRAYER, FEARED, HIDDEN, MERCIFUL, Arena, Tribute, add_tag, has_tag
 from games.render import MissingValue, Translator
 from games.services import load_catalogue
 
@@ -233,3 +233,101 @@ class EngineTests(TestCase):
         self.assertEqual(len(survivors), 0)
         play_next_round(arena)  # Day 3
         self.assertFalse(any(has_tag(t, HIDDEN) for t in arena.tributes))
+
+    # ---------- mercy, debts and the Gamemaker's shield ----------
+    def fight_until(self, wanted, mercy_answer, **fight_options):
+        """Fights tributes 2 and 4 with new seeds until the story tells the wanted line."""
+        from games.engine.combat import fight
+
+        for seed in range(500):
+            arena, tributes = self.arena_with_story()
+            arena.dice = Dice(seed)
+            arena.choices_left = 5
+            arena.ask = lambda decision: mercy_answer
+            fight(arena, tributes[2], tributes[4], 0, 1.0, **fight_options)
+            if wanted in [entry.line.group for entry in arena.log]:
+                return arena, tributes
+        self.fail(f"{wanted} never happened")
+
+    def test_sparing_a_loser_wounds_them_and_creates_a_debt(self):
+        arena, tributes = self.fight_until("combat.spared", mercy_answer=1)
+        spared = next(t for t in (tributes[2], tributes[4]) if t.debts)
+        winner = tributes[spared.debts[0]]
+        self.assertTrue(spared.alive and spared.wounded)
+        self.assertTrue(has_tag(winner, MERCIFUL))
+
+    def test_finishing_never_spares(self):
+        from games.engine.combat import fight
+
+        for seed in range(100):
+            arena, tributes = self.arena_with_story()
+            arena.dice = Dice(seed)
+            arena.choices_left = 5
+            arena.ask = lambda decision: 0
+            fight(arena, tributes[2], tributes[4], 0, 1.0)
+            self.assertNotIn("combat.spared", [entry.line.group for entry in arena.log])
+
+    def test_the_final_duel_has_no_mercy(self):
+        from games.engine.combat import fight
+
+        for seed in range(100):
+            arena, tributes = self.arena_with_story()
+            arena.dice = Dice(seed)
+            arena.choices_left = 5
+            arena.ask = lambda decision: 1
+            fight(arena, tributes[2], tributes[4], 0, 1.0, mercy=False)
+            self.assertNotIn("combat.spared", [entry.line.group for entry in arena.log])
+
+    def test_a_debtor_who_wins_lets_the_benefactor_go_once(self):
+        from games.engine.combat import fight
+        from games.engine.state import add_debt
+
+        repaid = 0
+        for seed in range(200):
+            arena, tributes = self.arena_with_story()
+            arena.dice = Dice(seed)
+            add_debt(tributes[4], tributes[2])  # 2 once spared 4
+            fight(arena, tributes[2], tributes[4], 0, 1.0, mercy=False)
+            if "combat.debt_repaid" in [entry.line.group for entry in arena.log]:
+                repaid += 1
+                self.assertTrue(tributes[2].alive)
+                self.assertEqual(tributes[4].debts, [])
+            else:
+                self.assertEqual(tributes[4].debts, [2])  # 2 won: the debt still stands
+        self.assertGreater(repaid, 0)
+
+    def test_the_shielded_tribute_is_never_caught(self):
+        from games.engine.events import arena_event
+
+        disaster = self.catalogue.arena_events[0]
+        for seed in range(100):
+            arena, tributes = self.arena_with_story()
+            arena.dice = Dice(seed)
+            arena_event(arena, disaster, death_chance=1.0, shielded=tributes[3])
+            self.assertTrue(tributes[3].alive)
+            self.assertFalse(tributes[3].wounded)
+            self.assertIn("arena.shielded", [entry.line.group for entry in arena.log])
+
+    def test_the_gamemaker_never_shields_themselves(self):
+        from games.engine.rounds import ask_shield
+
+        asked = []
+
+        def ask(decision):
+            asked.append(decision)
+            return 0
+
+        for seed in range(50):
+            arena, tributes = self.arena_with_story()
+            arena.dice, arena.ask = Dice(seed), ask
+            ask_shield(arena, tributes[1], self.catalogue.arena_events[0])
+        self.assertTrue(asked)
+        for decision in asked:
+            self.assertNotIn(decision.tribute, decision.option_tributes)
+            self.assertEqual(decision.question, "shield")
+
+    def test_more_pop_ups_when_few_are_left(self):
+        from games.engine.rounds import choice_budget
+
+        self.assertLess(choice_budget(20), choice_budget(8))
+        self.assertLess(choice_budget(8), choice_budget(3))

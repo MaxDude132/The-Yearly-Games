@@ -74,6 +74,18 @@ class Grudge(models.Model):
         constraints = [models.UniqueConstraint(fields=["tribute", "position"], name="unique_grudge_position")]
 
 
+class Debt(models.Model):
+    """The tribute owes a life to the target, who spared them."""
+
+    tribute = models.ForeignKey(Tribute, on_delete=models.CASCADE, related_name="debts")
+    position = models.PositiveIntegerField()
+    target = models.ForeignKey(Tribute, on_delete=models.CASCADE, related_name="+")
+
+    class Meta:
+        ordering = ["position"]
+        constraints = [models.UniqueConstraint(fields=["tribute", "position"], name="unique_debt_position")]
+
+
 class TributeTag(models.Model):
     """A reputation the story gave a tribute: feared, hidden or betrayer."""
 

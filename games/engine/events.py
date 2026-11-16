@@ -14,9 +14,9 @@ def random_item(arena, kind=None):
 # ---------- arena-wide ----------
 
 
-def arena_event(arena, event, death_chance=0.12):
+def arena_event(arena, event, death_chance=0.12, shielded=None):
     """A disaster hits everyone. Each tribute has a small chance to be caught;
-    the right kind of item (event.counter) often saves them."""
+    the right kind of item (event.counter) often saves them. A shielded tribute is never caught."""
     if event.is_feast:
         return feast(arena)
     arena.add_to_story("arena", arena.catalogue.intro(event))
@@ -25,6 +25,9 @@ def arena_event(arena, event, death_chance=0.12):
         roll = arena.dice.random()
         if roll >= death_chance + 0.2:
             continue  # not caught
+        if tribute is shielded:
+            arena.add_to_story("team", arena.line("arena.shielded"), a=tribute)
+            continue
         anyone_caught = True
         lifesaver = find_item(tribute, event.counter)
         if lifesaver and arena.dice.chance(0.6):

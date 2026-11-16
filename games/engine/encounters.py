@@ -6,6 +6,7 @@ from .state import (
     BETRAYER,
     FEARED,
     HIDDEN,
+    MERCIFUL,
     add_grudge,
     add_tag,
     find_item,
@@ -28,6 +29,7 @@ REFUSAL_STARTS_FIGHT = 0.25  # a refused alliance can turn ugly
 FEARED_SOUGHT = 0.2  # chance a tribute goes looking for a feared rival instead of a random one
 HIDDEN_SKIPPED = 0.5  # chance a sleeper who hid well is walked past at night
 COLD_HANDSHAKE = 0.4  # chance an alliance with a known betrayer falls through
+MERCY_WINS_OVER = 0.5  # chance a refusal turns into a yes when the offer comes from someone known for mercy
 
 
 def meet_someone(arena, tribute, busy, is_night):
@@ -119,6 +121,9 @@ def offer_alliance(arena, tribute, other):
     elif tribute.district == other.district:
         weights = [80, 15, 5]
     answer = arena.decide(other, "alliance_offer", weights, a=tribute, b=other)
+    if answer == 1 and has_tag(tribute, MERCIFUL) and arena.dice.chance(MERCY_WINS_OVER):
+        arena.add_to_story("team", arena.line("encounter.mercy_wins_over"), a=tribute, b=other)
+        answer = 0
 
     # Whoever already has an alliance brings the other one in.
     host = tribute if tribute.alliance else other

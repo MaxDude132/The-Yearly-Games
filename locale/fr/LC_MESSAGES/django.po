@@ -139,3 +139,9 @@ msgstr "Caché"
 
 msgid "Betrayer"
 msgstr "Traître"
+
+msgid "Merciful"
+msgstr "Clément"
+
+msgid "Owes a life to"
+msgstr "Doit la vie à"

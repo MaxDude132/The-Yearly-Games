@@ -151,6 +151,8 @@ def _card(row, tribute, arena, translator, names):
         details.append(mark_safe(f'<span class="text-gold">{escape(", ".join(_tag_labels(tribute)))}</span>'))
     if tribute.alive and enemy_names:
         details.append(f"{_('Grudge against')} {', '.join(enemy_names)}")
+    if tribute.alive and tribute.debts:
+        details.append(f"{_('Owes a life to')} {', '.join(names[i] for i in tribute.debts)}")
 
     return {
         "tribute": row,
@@ -189,7 +191,12 @@ def _decision_context(decision, rows, translator, names, game, arena):
 
 
 def _tag_labels(tribute):
-    labels = {"feared": _("Feared"), "hidden": _("Hidden"), "betrayer": _("Betrayer")}
+    labels = {
+        "feared": _("Feared"),
+        "hidden": _("Hidden"),
+        "betrayer": _("Betrayer"),
+        "merciful": _("Merciful"),
+    }
     return [labels[tag] for tag in tribute.tags]
 
 

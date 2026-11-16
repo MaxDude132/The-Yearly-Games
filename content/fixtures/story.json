@@ -364,5 +364,17 @@
 {"model":"content.storylinetranslation","fields":{"line":["encounter.cold_handshake",0],"language":"fr","text":"{a} et {b} sont sur le point de s'allier, mais quelqu'un se souvient d'une ancienne trahison. La poignée de main n'a jamais lieu."}},
 {"model":"content.storyline","fields":{"group":"encounter.hidden_well","variant":0}},
 {"model":"content.storylinetranslation","fields":{"line":["encounter.hidden_well",0],"language":"en","text":"{a} passes right by {b}'s hiding place without noticing a thing."}},
-{"model":"content.storylinetranslation","fields":{"line":["encounter.hidden_well",0],"language":"fr","text":"{a} passe juste à côté de la cachette de {b} sans rien remarquer."}}
+{"model":"content.storylinetranslation","fields":{"line":["encounter.hidden_well",0],"language":"fr","text":"{a} passe juste à côté de la cachette de {b} sans rien remarquer."}},
+{"model":"content.storyline","fields":{"group":"combat.spared","variant":0}},
+{"model":"content.storylinetranslation","fields":{"line":["combat.spared",0],"language":"en","text":"{a} lowers the weapon. {b} is spared, wounded, and owes {a} a life."}},
+{"model":"content.storylinetranslation","fields":{"line":["combat.spared",0],"language":"fr","text":"{a} baisse son arme. {b} est épargné, blessé, et doit la vie à {a}."}},
+{"model":"content.storyline","fields":{"group":"combat.debt_repaid","variant":0}},
+{"model":"content.storylinetranslation","fields":{"line":["combat.debt_repaid",0],"language":"en","text":"{b} has not forgotten that {a} spared them. Weapons stay down, and both walk away."}},
+{"model":"content.storylinetranslation","fields":{"line":["combat.debt_repaid",0],"language":"fr","text":"{b} n'a pas oublié que {a} l'a épargné. Les armes restent baissées et chacun s'éloigne."}},
+{"model":"content.storyline","fields":{"group":"encounter.mercy_wins_over","variant":0}},
+{"model":"content.storylinetranslation","fields":{"line":["encounter.mercy_wins_over",0],"language":"en","text":"{b} was ready to refuse, then remembers that {a} spares those who lose. {b} says yes."}},
+{"model":"content.storylinetranslation","fields":{"line":["encounter.mercy_wins_over",0],"language":"fr","text":"{b} s'apprêtait à refuser, puis se rappelle que {a} épargne les vaincus. {b} dit oui."}},
+{"model":"content.storyline","fields":{"group":"arena.shielded","variant":0}},
+{"model":"content.storylinetranslation","fields":{"line":["arena.shielded",0],"language":"en","text":"The disaster should have found {a}, but a hidden hand shields them."}},
+{"model":"content.storylinetranslation","fields":{"line":["arena.shielded",0],"language":"fr","text":"Le désastre aurait dû frapper {a}, mais une main cachée le protège."}}
 ]

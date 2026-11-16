@@ -91,5 +91,17 @@
 {"model":"content.questiontranslation","fields":{"question":["sponsor"],"language":"fr","text":"{sponsor}, te voilà commanditaire. Qui reçoit {item} ?"}},
 {"model":"content.question","fields":{"key":"gamemaker"}},
 {"model":"content.questiontranslation","fields":{"question":["gamemaker"],"language":"en","text":"{sponsor}, the Gamemakers hand you the controls. What hits the arena?"}},
-{"model":"content.questiontranslation","fields":{"question":["gamemaker"],"language":"fr","text":"{sponsor}, les Juges te donnent les commandes. Qu'est-ce qui frappe l'arène ?"}}
+{"model":"content.questiontranslation","fields":{"question":["gamemaker"],"language":"fr","text":"{sponsor}, les Juges te donnent les commandes. Qu'est-ce qui frappe l'arène ?"}},
+{"model":"content.question","fields":{"key":"mercy"}},
+{"model":"content.questiontranslation","fields":{"question":["mercy"],"language":"en","text":"{a} has {b} at their mercy. What now?"}},
+{"model":"content.questiontranslation","fields":{"question":["mercy"],"language":"fr","text":"{b} est à la merci de {a}. Que fait {a} ?"}},
+{"model":"content.questionoption","fields":{"question":["mercy"],"position":0}},
+{"model":"content.questionoptiontranslation","fields":{"option":["mercy",0],"language":"en","label":"Finish them"}},
+{"model":"content.questionoptiontranslation","fields":{"option":["mercy",0],"language":"fr","label":"L'achever"}},
+{"model":"content.questionoption","fields":{"question":["mercy"],"position":1}},
+{"model":"content.questionoptiontranslation","fields":{"option":["mercy",1],"language":"en","label":"Spare them"}},
+{"model":"content.questionoptiontranslation","fields":{"option":["mercy",1],"language":"fr","label":"L'épargner"}},
+{"model":"content.question","fields":{"key":"shield"}},
+{"model":"content.questiontranslation","fields":{"question":["shield"],"language":"en","text":"{sponsor}, the arena is about to suffer. Who do you shield from it?"}},
+{"model":"content.questiontranslation","fields":{"question":["shield"],"language":"fr","text":"{sponsor}, l'arène va souffrir. Qui protèges-tu ?"}}
 ]

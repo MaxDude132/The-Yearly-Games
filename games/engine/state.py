@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from .catalogue import Item, Line
 from .memory import remember_kill
 
-FEARED, HIDDEN, BETRAYER = "feared", "hidden", "betrayer"
+FEARED, HIDDEN, BETRAYER, MERCIFUL = "feared", "hidden", "betrayer", "merciful"
 FEARED_AFTER_KILLS = 3
 
 
@@ -21,7 +21,10 @@ class Tribute:
     items: list[Item] = field(default_factory=list)
     alliance: int = 0  # 0 means no alliance; the same number means the same alliance
     grudges: list[int] = field(default_factory=list)  # ids of tributes this one wants revenge on
-    tags: list[str] = field(default_factory=list)  # reputation: FEARED, HIDDEN, BETRAYER
+    tags: list[str] = field(default_factory=list)  # reputation: FEARED, HIDDEN, BETRAYER, MERCIFUL
+    debts: list[int] = field(
+        default_factory=list
+    )  # ids of tributes who spared this one: they owe them a life
     kills: int = 0
     died_on_day: int = 0
 
@@ -191,6 +194,20 @@ def forgive_grudge(tribute, other):
 
 def same_alliance(a, b):
     return a.alliance != 0 and a.alliance == b.alliance
+
+
+def owes_life(tribute, other):
+    """True if other once spared tribute."""
+    return other.id in tribute.debts
+
+
+def add_debt(tribute, benefactor):
+    if not owes_life(tribute, benefactor):
+        tribute.debts.append(benefactor.id)
+
+
+def remove_debt(tribute, benefactor):
+    tribute.debts = [debt for debt in tribute.debts if debt != benefactor.id]
 
 
 def has_tag(tribute, tag):

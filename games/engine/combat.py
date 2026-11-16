@@ -1,7 +1,18 @@
 """How a fight between two tributes plays out."""
 
 from .catalogue import ARMOR, WEAPON
-from .state import FEARED, add_grudge, find_item, has_tag, remove_item
+from .state import (
+    FEARED,
+    MERCIFUL,
+    add_debt,
+    add_grudge,
+    add_tag,
+    find_item,
+    has_tag,
+    owes_life,
+    remove_debt,
+    remove_item,
+)
 
 WEAPON_BONUS = 0.35
 ARMOR_BONUS = 0.1
@@ -10,6 +21,7 @@ WOUND_PENALTY = 0.25
 WEAPON_BREAK_CHANCE = 0.15  # a weapon is never a guarantee
 ARMOR_SAVE_CHANCE = 0.4
 LOOT_CHANCE = 0.6
+MERCY_WEIGHTS = [85, 15]  # when the winner is not a player: finish them, or spare them
 
 
 def fighting_strength(arena, tribute):
@@ -28,17 +40,22 @@ def fighting_strength(arena, tribute):
     )
 
 
-def fight(arena, first, second, edge=0, lethal_chance=0.6):
+def fight(arena, first, second, edge=0, lethal_chance=0.6, mercy=True):
     """first and second fight.
 
     edge: a bonus for first (positive) or second (negative).
     lethal_chance: how likely the loser dies instead of being wounded or escaping.
+    mercy: the winner may spare a loser who would die. Whoever was spared owes them a life.
     """
     dice = arena.dice
     first_strength = fighting_strength(arena, first)
     second_strength = fighting_strength(arena, second)
     first_wins = first_strength + edge >= second_strength
     winner, loser = (first, second) if first_wins else (second, first)
+    if owes_life(winner, loser):  # the winner was once spared by the loser
+        remove_debt(winner, loser)
+        arena.add_to_story("team", arena.line("combat.debt_repaid"), a=loser, b=winner)
+        return
     roll = dice.random()
     loser_armor = find_item(loser, ARMOR)
     winner_weapon = find_item(winner, WEAPON)
@@ -49,6 +66,17 @@ def fight(arena, first, second, edge=0, lethal_chance=0.6):
             remove_item(loser, loser_armor)
             add_grudge(loser, winner)
             arena.add_to_story("item", arena.line("combat.saved_by_armor"), b=loser, item=loser_armor)
+            return
+        if mercy and arena.decide(winner, "mercy", MERCY_WEIGHTS, a=winner, b=loser) == 1:
+            loser.wounded = True
+            add_debt(loser, winner)
+            add_tag(winner, MERCIFUL)
+            arena.add_to_story("team", arena.line("combat.spared"), a=winner, b=loser)
+            if loser.items:  # a spared tribute pays with something they carry
+                payment = dice.pick(loser.items)
+                remove_item(loser, payment)
+                winner.items.append(payment)
+                arena.add_to_story("item", arena.line("combat.loot"), a=winner, item=payment)
             return
         if winner_weapon:
             line = arena.pick_line("combat.kill_with_weapon")

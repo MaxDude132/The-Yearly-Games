@@ -12,7 +12,7 @@ from games.services import load_catalogue
 LANGUAGES = [code for code, _name in settings.LANGUAGES]
 QUESTIONS_THE_ENGINE_ASKS = {
     "cornucopia", "meeting", "alliance_offer", "sleeper", "loyalty", "trap", "berries", "final_duel",
-    "sponsor", "gamemaker",
+    "sponsor", "gamemaker", "mercy", "shield",
 }  # fmt: skip
 PLACEHOLDER = re.compile(r"\{(\w+)\}")
 KNOWN_PLACEHOLDERS = {"a", "b", "item", "n", "names", "sponsor"}

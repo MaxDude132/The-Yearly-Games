@@ -6,7 +6,16 @@ from .encounters import ally_moment, meet_someone
 from .events import arena_event, build_trap, feast, hazard, random_item, strange_berries, use_random_item
 from .state import FEARED, HIDDEN, Decision, add_grudge, add_tag, find_item, remove_tag, same_alliance
 
-MAX_CHOICES_PER_ROUND = 2  # keeps the game moving: about 15 to 20 pop-ups per game
+
+def choice_budget(alive):
+    """How many pop-ups a normal day or night may have: more when the game gets tense."""
+    if alive <= 4:
+        return 6
+    if alive <= 8:
+        return 4
+    return 3
+
+
 HIDDEN_UNTIL_DAY = 3  # a tribute who fled the Bloodbath stays hidden for the first two nights
 
 # ---------- the Bloodbath ----------
@@ -78,6 +87,19 @@ def bloodbath(arena):
 
 
 # ---------- between rounds ----------
+def ask_shield(arena, gamemaker, event):
+    """After choosing a disaster, the Gamemaker may shield one of a few tributes from it.
+    Never themselves, so being in the room does not buy safety. Returns the shielded tribute or None."""
+    if event.is_feast:
+        return None
+    candidates = arena.dice.shuffle([t for t in arena.living() if t is not gamemaker])[:4]
+    if not candidates:
+        return None
+    decision = Decision(
+        gamemaker, "shield", len(candidates), sponsor=gamemaker, option_tributes=tuple(candidates),
+        for_whole_arena=True,
+    )  # fmt: skip
+    return candidates[arena.ask_player(decision)]
 
 
 def start_of_day(arena):
@@ -109,7 +131,8 @@ def start_of_day(arena):
             gamemaker, "gamemaker", len(events), sponsor=gamemaker, option_events=tuple(events),
             for_whole_arena=True,
         )  # fmt: skip
-        arena_event(arena, events[arena.ask_player(decision)])
+        event = events[arena.ask_player(decision)]
+        arena_event(arena, event, shielded=ask_shield(arena, gamemaker, event))
     elif not arena.feast_happened and len(arena.living()) <= 8:
         feast(arena)
     elif arena.day > 1 and dice.chance(0.2):
@@ -191,7 +214,7 @@ def final_duel(arena):
     outcome = (tactic_a - tactic_b + 3) % 3  # 0 same tactic, 1 a wins the matchup, 2 b wins it
     edge = [0, 0.3, -0.3][outcome]
     while len(arena.living()) == 2:
-        fight(arena, a, b, edge, 0.9)
+        fight(arena, a, b, edge, 0.9, mercy=False)
 
 
 # ---------- one round ----------
@@ -214,7 +237,7 @@ def play_next_round(arena):
     is_finale = alive_at_start == 2
 
     # Everyone present chooses at the Bloodbath and in the final duel; otherwise a few pop-ups per round.
-    arena.choices_left = float("inf") if arena.round == 1 or is_finale else MAX_CHOICES_PER_ROUND
+    arena.choices_left = float("inf") if arena.round == 1 or is_finale else choice_budget(alive_at_start)
 
     if arena.round == 1:
         title, style = "phase.bloodbath", "heading"
@@ -250,7 +273,7 @@ def play_next_round(arena):
                 a, b = dice.shuffle(arena.living())[:2]
                 a.alliance = b.alliance = 0
                 arena.dissolve_lonely_alliances()
-                fight(arena, a, b, 0, 0.9)
+                fight(arena, a, b, 0, 0.9, mercy=False)
 
     fallen = arena.fallen_this_round
     line = arena.line("phase.cannons" if fallen else "phase.no_cannons")

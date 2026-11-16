@@ -15,7 +15,7 @@ Each proposal has an ID so we can refer to it ("drop 2c", "do 1a first"). Edit t
 ## 1. Choices carry forward
 
 ### 1a. Reputation tags
-**Partly implemented**: tags `feared`, `hidden` and `betrayer` (table `TributeTag`). `merciful` and `trusted` are not done. See `games/engine/state.py`, `combat.py`, `encounters.py`, `rounds.py`.
+**Mostly implemented**: tags `feared`, `hidden`, `betrayer` and `merciful` (table `TributeTag`), plus life debts (table `Debt`). `trusted` is not done. See `games/engine/state.py`, `combat.py`, `encounters.py`, `rounds.py`.
 Per-tribute tags such as `Betrayer`, `Merciful`, `Feared`, `Trusted`, stored like `Grudge`. They change later odds: betraying an ally lowers everyone's alliance acceptance toward you, sparing someone creates a debt that can trigger a rescue later.
 - Touches: `games/models.py` (new table), `state.py`, `encounters.py`, new story lines.
 - Cost: medium. Risk: needs the balance rule (3a) to change.
@@ -37,6 +37,7 @@ Rushers start `Feared`, pack grabbers keep their item advantage, fleers start `H
 ## 2. Bigger, longer choices
 
 ### 2a. Multi-step encounters
+**Partly implemented**: a fight that would kill now asks the winner "finish or spare?" (question `mercy`). Sparing wounds the loser, takes one of their items, gives the winner the `merciful` tag and creates a debt (table `Debt`): if the debtor later wins a fight against the benefactor, they let them go once. A merciful tribute can win over a refused alliance (50%). Not done: "follow or let go?" after slipping away.
 A meeting becomes a short chain. Attack, then "finish them or spare them?". Slip away, then "follow or let go?". Spare creates a debt (1a).
 - Touches: `encounters.py`, `questions.json`. The replay-from-seed design already supports more questions.
 - Cost: medium. Raises pop-up count unless the cap changes (see 2e).
@@ -54,13 +55,14 @@ At the start of a day, a present player picks: hunt, hide, scavenge, or guard th
 - Decision:
 
 ### 2d. Gamemaker targets
+**Implemented**: after picking a disaster, the Gamemaker shields one of four random tributes, never themselves (question `shield`).
 The Gamemaker picks an event and also who it hits, or who gets a mercy.
 - Touches: `start_of_day` in `rounds.py`, `arena_event` in `events.py`.
 - Cost: low to medium.
 - Decision:
 
 ### 2e. Pop-up budget
-**Accepted** (longer game is fine). Raising `MAX_CHOICES_PER_ROUND`, or making it depend on how important the moment is (finale-adjacent rounds get more, quiet days fewer). Needed if 2a to 2c are accepted.
+**Implemented**: `choice_budget()` in `rounds.py`: 3 pop-ups per round, 4 with 8 or fewer left, 6 with 4 or fewer. About 40 choices per game in the simulation (was 28). Raising `MAX_CHOICES_PER_ROUND`, or making it depend on how important the moment is (finale-adjacent rounds get more, quiet days fewer). Needed if 2a to 2c are accepted.
 - Decision:
 
 ## 3. Rebalance so choices can matter
