@@ -113,7 +113,7 @@ def load_arena(game, catalogue, dice, ask):
 
     victor_rows = list(game.victors.order_by("position"))
     victor_id_of = {row.pk: row.position for row in victor_rows}
-    victors = [EngineVictor(id=row.position, present=row.present) for row in victor_rows]
+    victors = [EngineVictor(id=row.position, present=row.present, edition=row.edition) for row in victor_rows]
 
     def tribute_id(pk):
         return None if pk is None else id_of[pk]

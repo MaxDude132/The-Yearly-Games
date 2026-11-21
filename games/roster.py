@@ -10,6 +10,7 @@ from games.models import Game, PastVictor, Tribute
 
 NAME_MAX_LENGTH = Tribute._meta.get_field("name").max_length
 FIRST_YEAR, LAST_YEAR = 1900, 2200  # a past victor's year outside this range is ignored
+MAX_EDITION = 999  # "which Games" outside 1 to this is ignored
 PHOTO_SIZE = 192  # pixels: a small square is plenty for a round avatar
 MAX_UPLOAD_BYTES = 12 * 1024 * 1024
 
@@ -51,15 +52,25 @@ def save_roster(game, post, files):
         prefix = f"victor-{{}}-{row.position}"
         row.name = post.get(prefix.format("name"), row.name).strip()[:NAME_MAX_LENGTH]
         row.present = prefix.format("here") in post
+        row.edition = parse_edition(post.get(prefix.format("edition"), ""))
         row.year = parse_year(post.get(prefix.format("year"), ""))
         save_photo(row, files.get(prefix.format("photo")))
-    PastVictor.objects.bulk_update(victors, ["name", "present", "year", "photo"])
+    PastVictor.objects.bulk_update(victors, ["name", "present", "edition", "year", "photo"])
 
     voters = post.get("voters", game.voters)
     if voters in Game.Voters.values:
         game.voters = voters
     game.no_conflict_votes = "no_conflict_votes" in post
     game.save(update_fields=["voters", "no_conflict_votes", "updated_at"])
+
+
+def parse_edition(text):
+    """Which Yearly Games a past victor won (1 for the first), or None if empty or not a sensible number."""
+    text = text.strip()
+    if not text.isdigit():
+        return None
+    edition = int(text)
+    return edition if 1 <= edition <= MAX_EDITION else None
 
 
 def parse_year(text):

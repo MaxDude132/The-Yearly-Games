@@ -17,10 +17,11 @@ NEW_GROUPS = [
 ]  # fmt: skip
 QUESTIONS_THE_ENGINE_ASKS = {
     "cornucopia", "meeting", "alliance_offer", "sleeper", "loyalty", "trap", "berries", "final_duel",
-    "sponsor", "victor_sponsor", "gamemaker", "mercy", "shield", "goal", "bounty", "chase", "raid",
+    "sponsor", "victor_sponsor", "victor_sponsor_edition",
+    "gamemaker", "mercy", "shield", "goal", "bounty", "chase", "raid",
 }  # fmt: skip
 PLACEHOLDER = re.compile(r"\{(\w+)\}")
-KNOWN_PLACEHOLDERS = {"a", "b", "item", "n", "names", "sponsor", "victor"}
+KNOWN_PLACEHOLDERS = {"a", "b", "item", "n", "nth", "names", "sponsor", "victor"}
 
 
 class ContentTests(TestCase):

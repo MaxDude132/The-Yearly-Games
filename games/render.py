@@ -31,6 +31,17 @@ def display_name(row):
     return row.name or f"{gettext('Tribute')} {row.position + 1}"
 
 
+def ordinal(number, language):
+    """1st, 2nd, 3rd, 11th... in English; 1ers, 2es, 3es in French (for "les 1ers Jeux")."""
+    if language.startswith("fr"):
+        return "1ers" if number == 1 else f"{number}es"
+    if 10 <= number % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(number % 10, "th")
+    return f"{number}{suffix}"
+
+
 def victor_display_name(row):
     """A past victor's name, or "Past victor 2" in the viewer's language if nobody typed one."""
     return row.name or f"{gettext('Past victor')} {row.position + 1}"
@@ -41,6 +52,7 @@ class Translator:
 
     def __init__(self, language):
         # The default language goes first so that the viewer's language overrides it where translated.
+        self.language = language
         languages = list(dict.fromkeys([settings.LANGUAGE_CODE, language]))
         self.lines, self.items, self.events, self.questions, self.options = {}, {}, {}, {}, {}
         for code in languages:
@@ -78,6 +90,7 @@ class Translator:
             "sponsor": decision.sponsor.id if decision.sponsor else None,
             "victor": decision.victor.id if decision.victor else None,
             "item": decision.item.key if decision.item else None,
+            "n": decision.n,
         }
         return self.fill(self.questions[decision.question], values, name_of, strict, victor_name_of)
 
@@ -89,14 +102,15 @@ class Translator:
         return [self.options[(decision.question, i)] for i in range(decision.option_count)]
 
     def fill(self, template, values, name_of, strict=False, victor_name_of=None):
-        """Fills {a}, {b}, {sponsor}, {victor}, {item}, {n} and {names} in a template. Returns safe HTML."""
+        """Fills {a}, {b}, {sponsor}, {victor}, {item}, {n}, {nth} and {names} in a template.
+        {nth} is {n} as an ordinal: 2nd in English, 2es in French. Returns safe HTML."""
 
         def bold(name):
             return f"<b>{escape(name)}</b>"
 
         def replace(match):
             key = match.group(1)
-            value = values.get(key)
+            value = values.get("n" if key == "nth" else key)
             if value is None or value == ():
                 if strict:
                     raise MissingValue(f"no value for {{{key}}} in: {template}")
@@ -109,6 +123,8 @@ class Translator:
                 return ", ".join(bold(name_of(tribute_id)) for tribute_id in value)
             if key == "item":
                 return escape(self.items[value])
+            if key == "nth":
+                return escape(ordinal(value, self.language))
             return escape(str(value))
 
         return mark_safe(PLACEHOLDER.sub(replace, escape(template)))

@@ -55,8 +55,9 @@ class EngineTests(TestCase):
 
         for seed in range(GAMES):
             choices.clear()
-            # Every second tribute is "in the room", so pop-ups happen. One past victor is here, one is not.
-            victors = [Victor(id=0), Victor(id=1, present=False)]
+            # Every second tribute is "in the room", so pop-ups happen. Two past victors are here
+            # (one knows which Games they won, one does not), one is not.
+            victors = [Victor(id=0, edition=2), Victor(id=1), Victor(id=2, present=False)]
             arena = self.play(seed, lambda i: i % 2 == 0, answer_randomly, victors)
             self.assertEqual(len(arena.living()), 1, "there must be exactly one winner")
             wins[arena.winner.id] += 1
@@ -428,6 +429,26 @@ class EngineTests(TestCase):
         self.assertTrue(gifts)
         self.assertTrue(all(d.question == "victor_sponsor" and isinstance(d.tribute, Victor) for d in gifts))
         self.assertTrue(all(d.victor is d.tribute for d in gifts))
+
+    def test_a_gift_says_which_games_the_past_victor_won(self):
+        asked = self.start_of_day_asks([Victor(id=0, edition=3)], fallen_here=0)
+        gifts = [d for d in asked if d.question.startswith("victor_sponsor")]
+        self.assertTrue(gifts)
+        self.assertTrue(all(d.question == "victor_sponsor_edition" and d.n == 3 for d in gifts))
+        names = {"name_of": lambda i: f"T{i}", "victor_name_of": lambda i: "Alex"}
+        self.assertIn(
+            "victor of the 3rd Yearly Games", self.translators["en"].question_text(gifts[0], **names)
+        )
+        self.assertIn("vainqueur des 3es Jeux", self.translators["fr"].question_text(gifts[0], **names))
+
+    def test_ordinals_in_english_and_french(self):
+        from games.render import ordinal
+
+        english = [ordinal(n, "en") for n in (1, 2, 3, 4, 11, 12, 13, 21, 22, 101, 111)]
+        self.assertEqual(
+            english, ["1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "22nd", "101st", "111th"]
+        )
+        self.assertEqual([ordinal(n, "fr") for n in (1, 2, 10)], ["1ers", "2es", "10es"])
 
     def test_the_fallen_send_the_gifts_when_no_past_victor_is_here(self):
         asked = self.start_of_day_asks([Victor(id=0, present=False)], fallen_here=2)

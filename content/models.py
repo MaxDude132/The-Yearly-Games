@@ -105,7 +105,7 @@ class StoryLine(models.Model):
 
     Placeholders in the text: {a} the tribute acting, {b} the other tribute, {item} an item,
     {n} a number, {names} a list of names, {sponsor} a fallen player sending a gift,
-    {victor} a past victor (not a tribute) sending a gift.
+    {victor} a past victor (not a tribute) sending a gift, {nth} the number {n} as an ordinal (2nd, 2es).
     """
 
     group = models.CharField(max_length=80)

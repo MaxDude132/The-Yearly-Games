@@ -78,6 +78,7 @@ class PastVictor(models.Model):
     name = models.CharField(max_length=30, blank=True)
     photo = models.ImageField(upload_to="photos/", blank=True)
     present = models.BooleanField(default=True)  # in the room
+    edition = models.PositiveSmallIntegerField(null=True, blank=True)  # which Games they won: 1 = the first
     year = models.PositiveSmallIntegerField(null=True, blank=True)  # the year they won (flavour only)
 
     class Meta:

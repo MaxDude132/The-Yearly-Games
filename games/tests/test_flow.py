@@ -266,13 +266,13 @@ class FlowTests(TestCase):
         self.assertEqual(self.game.victors.count(), 2)
         self.assertEqual(self.game.tributes.count(), 24)  # victors are not tributes
         fields = {
-            "victor-name-0": "Alex", "victor-year-0": "2023", "victor-here-0": "on",
-            "victor-name-1": "Sam", "victor-year-1": "nope",
+            "victor-name-0": "Alex", "victor-edition-0": "2", "victor-year-0": "2023", "victor-here-0": "on",
+            "victor-name-1": "Sam", "victor-edition-1": "0", "victor-year-1": "nope",
         }  # fmt: skip
         self.client.post("/roster/", setup_form(self.game, action="save", **fields))
         alex, sam = self.game.victors.order_by("position")
-        self.assertEqual((alex.name, alex.year, alex.present), ("Alex", 2023, True))
-        self.assertEqual((sam.name, sam.year, sam.present), ("Sam", None, False))
+        self.assertEqual((alex.name, alex.edition, alex.year, alex.present), ("Alex", 2, 2023, True))
+        self.assertEqual((sam.name, sam.edition, sam.year, sam.present), ("Sam", None, None, False))
         page = self.client.get("/").content.decode()
         self.assertIn('value="Alex"', page)
         self.assertIn('value="2023"', page)
@@ -287,36 +287,48 @@ class FlowTests(TestCase):
             setup_form(
                 self.game,
                 action="start",
-                **{"victor-name-0": "Alex", "victor-year-0": "2021", "victor-here-0": "on"},
+                **{
+                    "victor-name-0": "Alex",
+                    "victor-edition-0": "1",
+                    "victor-year-0": "2021",
+                    "victor-here-0": "on",
+                },
             ),
         )
         page = self.client.get("/").content.decode()
         self.assertIn("Alex", page)
         self.assertIn("2021", page)
+        self.assertIn("1st Games", page)
         self.assertEqual(self.client.post("/victors/0/present/", {"present": "0"}).status_code, 204)
         self.assertFalse(self.game.victors.get().present)
         self.assertEqual(self.client.post("/victors/5/present/", {"present": "1"}).status_code, 404)
 
+    def test_every_reputation_tag_has_a_label_on_the_board(self):
+        from games.engine.state import BETRAYER, FEARED, HIDDEN, MERCIFUL, TRUSTED, Tribute
+        from games.views import _tag_labels
+
+        tribute = Tribute(id=0, tags=[FEARED, HIDDEN, BETRAYER, MERCIFUL, TRUSTED])
+        self.assertEqual(len(_tag_labels(tribute)), 5)
+
     def test_a_past_victor_in_the_room_sends_gifts_during_a_game(self):
         """No tribute is in the room, so the only pop-ups are the past victor's gifts."""
         self.client.post("/roster/", setup_form(self.game, action="add-victor"))
-        fields = {"victor-name-0": "Alex", "victor-here-0": "on"}
+        fields = {"victor-name-0": "Alex", "victor-edition-0": "2", "victor-here-0": "on"}
         self.client.post("/roster/", setup_form(self.game, lambda position: False, action="start", **fields))
         gifts = 0
         for _ in range(100):
             page = self.play_until_question_or_end()
             if "New game" in page:
                 break
-            self.assertIn("as a past victor you sponsor a tribute", page)
+            self.assertIn("victor of the 2nd Yearly Games, you sponsor a tribute", page)
             gifts += 1
             position = re.search(r'name="position" value="(\d+)"', page).group(1)
             self.client.post("/decision/", {"position": position, "choice": 0})
         if not gifts:
             self.skipTest("this game happened to end without a gift")  # gifts are random
-        self.assertEqual(
-            LogEntry.objects.filter(line__group="item.from_victor", victor__name="Alex").count(), gifts
-        )
-        self.assertIn("<b>Alex</b>, victor of a past Games", self.client.get("/").content.decode())
+        gift_lines = LogEntry.objects.filter(line__group="item.from_victor_edition", victor__name="Alex")
+        self.assertEqual(gift_lines.count(), gifts)
+        self.assertIn("<b>Alex</b>, victor of the 2nd Yearly Games", self.client.get("/").content.decode())
 
     def test_absent_tributes_get_votes_from_the_dead_in_the_room(self):
         self.client.post(

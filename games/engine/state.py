@@ -48,6 +48,7 @@ class Victor:
 
     id: int  # position in the list of past victors: 0, 1, 2...
     present: bool = True  # in the room
+    edition: int | None = None  # which Yearly Games they won: 1 for the first, 2 for the second...
 
 
 @dataclass(frozen=True)
@@ -77,6 +78,7 @@ class Decision:
     item: Item | None = None
     sponsor: Tribute | None = None
     victor: Victor | None = None  # fills {victor} in the question
+    n: int | None = None  # fills {n} / {nth} in the question
     option_tributes: tuple[Tribute, ...] = ()  # sponsor question: the options are these tributes
     option_events: tuple = ()  # gamemaker question: the options are these arena events
     for_whole_arena: bool = False

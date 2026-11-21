@@ -259,3 +259,16 @@ msgstr "La rumeur du jour favorise ceux qui se cachent, et les chasseurs trouver
 
 msgid "Today's rumour favours staying with allies."
 msgstr "La rumeur du jour favorise ceux qui restent avec leurs alliés."
+
+msgid "Games #"
+msgstr "Jeux nº"
+
+msgid "Which Games they won: 1 for the first, 2 for the second..."
+msgstr "Quels Jeux cette personne a gagnés : 1 pour les premiers, 2 pour les deuxièmes..."
+
+msgid "Games # is which Games they won: 1 for the first, 2 for the second..."
+msgstr "« Jeux nº » indique quels Jeux la personne a gagnés : 1 pour les premiers, 2 pour les deuxièmes..."
+
+#, python-format
+msgid "%(nth)s Games"
+msgstr "%(nth)s Jeux"

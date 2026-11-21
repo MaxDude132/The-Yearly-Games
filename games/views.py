@@ -18,7 +18,7 @@ from games.engine.dice import Dice
 from games.engine.rounds import is_night_round
 from games.engine.state import Victor, alliance_leader, holds_grudge, owes_life, same_alliance
 from games.models import Game
-from games.render import Translator, current_language, display_name, victor_display_name
+from games.render import Translator, current_language, display_name, ordinal, victor_display_name
 from games.styles import STATUS_PILLS, story_classes
 
 NEW = "?new=1"  # tells the page to open at the start of the newest round
@@ -150,6 +150,9 @@ def _game_page(request, game):
                     "name": victor_names[row.position],
                     "letters": _victor_letters(row),
                     "year": row.year,
+                    "games": _("%(nth)s Games") % {"nth": ordinal(row.edition, current_language())}
+                    if row.edition
+                    else "",
                     "present": row.present,
                 }
                 for row in victor_rows
@@ -257,8 +260,9 @@ def _tag_labels(tribute):
         "hidden": _("Hidden"),
         "betrayer": _("Betrayer"),
         "merciful": _("Merciful"),
+        "trusted": _("Trusted"),
     }
-    return [labels[tag] for tag in tribute.tags]
+    return [labels[tag] for tag in tribute.tags if tag in labels]  # an unknown tag is not shown
 
 
 def _status(tribute):

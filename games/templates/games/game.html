@@ -59,7 +59,7 @@
         {% for card in victors %}
         <div class="flex flex-wrap items-center gap-2 rounded-md border border-line bg-panel px-3 py-2">
           {% include "games/_avatar.html" with tribute=card.victor letters=card.letters %}
-          <span class="min-w-24 flex-1 font-semibold wrap-anywhere">{{ card.name }}{% if card.year %} <span class="font-normal text-gold">· {{ card.year }}</span>{% endif %}</span>
+          <span class="min-w-24 flex-1 font-semibold wrap-anywhere">{{ card.name }}{% if card.games %} <span class="font-normal text-gold">· {{ card.games }}</span>{% endif %}{% if card.year %} <span class="font-normal text-gold">· {{ card.year }}</span>{% endif %}</span>
           <label class="flex items-center gap-1 text-sm whitespace-nowrap text-moss">
             <input type="checkbox" class="size-[1.1rem] accent-ember" data-present-url="{% url 'victor_present' card.victor.position %}" {% if card.present %}checked{% endif %}>
             {% translate "here" %}

@@ -32,7 +32,7 @@
         </ol>
         <fieldset class="my-4 flex flex-col gap-2 rounded-md border border-line p-3">
           <legend class="px-1 text-sm text-gold">{% translate "Past victors" %}</legend>
-          <p class="m-0 text-sm text-moss">{% translate "People who won an earlier Yearly Games. They are not tributes: when they are here, they sponsor tributes with gifts and may vote." %}</p>
+          <p class="m-0 text-sm text-moss">{% translate "People who won an earlier Yearly Games. They are not tributes: when they are here, they sponsor tributes with gifts and may vote." %} {% translate "Games # is which Games they won: 1 for the first, 2 for the second..." %}</p>
           {% if victors %}
           <ol class="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(23rem,1fr))] gap-2 p-0">
             {% for row in victors %}{% with victor=row.victor %}
@@ -45,6 +45,11 @@
               <input type="text" name="victor-name-{{ victor.position }}" value="{{ victor.name }}" maxlength="30"
                 class="min-w-0 flex-1 rounded-md border border-line bg-panel px-3 py-2 placeholder:text-moss focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
                 placeholder="{% translate 'Past victor' %} {{ row.number }}" aria-label="{% translate 'Past victor' %} {{ row.number }}">
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" name="victor-edition-{{ victor.position }}"
+                value="{{ victor.edition|default_if_none:'' }}"
+                class="w-[3.6rem] rounded-md border border-line bg-panel px-2 py-2 text-sm text-gold placeholder:text-moss focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
+                placeholder="{% translate 'Games #' %}" title="{% translate 'Which Games they won: 1 for the first, 2 for the second...' %}"
+                aria-label="{% translate 'Which Games they won: 1 for the first, 2 for the second...' %} {% translate 'Past victor' %} {{ row.number }}">
               <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" name="victor-year-{{ victor.position }}"
                 value="{{ victor.year|default_if_none:'' }}"
                 class="w-[4.2rem] rounded-md border border-line bg-panel px-2 py-2 text-sm text-gold placeholder:text-moss focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"

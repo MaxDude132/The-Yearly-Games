@@ -170,16 +170,20 @@ def send_gift(arena, sponsor):
     receives a random item."""
     candidates = arena.dice.shuffle(arena.living())[:4]
     gift = random_item(arena)
+    edition = None
     if isinstance(sponsor, Victor):
         question, line, who = "victor_sponsor", "item.from_victor", {"victor": sponsor}
+        edition = sponsor.edition
+        if edition:  # the text says which Games they won: "victor of the 2nd Yearly Games"
+            question, line = "victor_sponsor_edition", "item.from_victor_edition"
     else:
         question, line, who = "sponsor", "item.from_sponsor", {"sponsor": sponsor}
     decision = Decision(
-        sponsor, question, len(candidates), item=gift, option_tributes=tuple(candidates), **who
+        sponsor, question, len(candidates), item=gift, option_tributes=tuple(candidates), n=edition, **who
     )
     receiver = candidates[arena.ask_player(decision)]
     receiver.items.append(gift)
-    arena.add_to_story("item", arena.line(line), a=receiver, item=gift, **who)
+    arena.add_to_story("item", arena.line(line), a=receiver, item=gift, n=edition, **who)
 
 
 def place_bounty(arena, sponsor):
