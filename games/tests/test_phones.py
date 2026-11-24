@@ -190,3 +190,30 @@ class PhoneTests(TestCase):
         self.client.post("/round/next/", {"bet-1": target})  # the host bets for tribute 1, not for 0
         bets = {bet.bettor.position: bet.target.position for bet in self.game.bets.filter(round=coming)}
         self.assertEqual(bets, {0: int(target), 1: int(target)})
+
+    def test_a_past_victor_bets_on_their_phone(self):
+        self.client.post("/roster/", setup_form(self.game, action="add-victor"))
+        phone = self.phone(kind="victor", position=0, name="Alex")
+        self.client.post(
+            "/roster/",
+            setup_form(self.game, lambda position: False, action="start", **{"victor-here-0": "on"}),
+        )
+        for _ in range(200):  # the host answers Alex's sponsor questions until bets open
+            page = phone.get(f"/play/{self.code}/").content.decode()
+            if "data-bets" in page:
+                break
+            host = self.client.get("/").content.decode()
+            if 'role="dialog"' in host:
+                position = re.search(r'name="position" value="(\d+)"', host).group(1)
+                self.client.post("/decision/", {"position": position, "choice": 0})
+                continue
+            self.client.post("/round/next/")
+        else:
+            self.fail("bets never opened")
+        target = re.search(r'<option value="(\d+)"', page[page.index("data-bets") :]).group(1)
+        phone.post(f"/play/{self.code}/bet/", {"target": target})
+        bet = self.game.bets.get()
+        self.assertEqual((bet.victor.name, bet.target.position), ("Alex", int(target)))
+        self.assertIn("has bet", self.client.get("/").content.decode())
+        self.client.post("/round/next/", {"victor-bet-0": ""})  # the host's form keeps the phone's bet
+        self.assertTrue(self.game.bets.filter(victor__name="Alex").exists())

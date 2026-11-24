@@ -11,6 +11,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
 
+from games import bets as bet_tools
 from games import players, services
 from games import roster as roster_tools
 from games.engine.combat import strength_bonus
@@ -173,10 +174,8 @@ def _game_page(request, game):
             "main_button": main_button,
             "round_waiting": decision is not None,
             "decision": _decision_context(decision, rows, victor_rows, translator, names, game, arena),
-            "bets": _bet_form(game, arena, decision, rows, names),
-            "scores": [
-                {"name": names[row.position], "points": points} for row, points in services.bet_scores(game)
-            ],
+            "bets": _bet_form(game, arena, decision, rows, names, victor_rows),
+            "scores": _scores(game, names, victor_names),
             "recap": _recap(arena, translator, name_of, victor_name_of) if arena.winner else None,
             "confirm_quit": "confirm_quit" in request.GET,
             "join": _join(request, game),
@@ -388,11 +387,7 @@ def next_round(request, game):
     if game.winner_id:
         services.reset_game(game)  # "New game": back to the setup screen
         return redirect("index")
-    bets = {}
-    for key, value in request.POST.items():
-        if key.startswith("bet-") and key[4:].isdigit() and value.isdigit():
-            bets[int(key[4:])] = int(value)
-    services.place_bets(game, bets)
+    bet_tools.place_bets(game, _posted_bets(request.POST))
     services.start_round(game)
     return _home_new()
 
@@ -444,28 +439,61 @@ def set_victor_present(request, game, position):
 
 
 # ---------- bets and the recap ----------
-def _bet_form(game, arena, decision, rows, names):
-    """Before a night (not the final duel), each player in the room may bet on who falls first."""
+# A bet field in the host's form is named after the seat: "bet-3" for tribute 3,
+# "victor-bet-0" for past victor 0.
+BET_FIELD_PREFIXES = {"bet-": players.TRIBUTE, "victor-bet-": players.VICTOR}
+
+
+def _bet_field(kind, position):
+    return f"{'victor-bet' if kind == players.VICTOR else 'bet'}-{position}"
+
+
+def _posted_bets(post):
+    """{(kind, position): target position} from the host's bet fields. Empty fields are no bet."""
+    bets = {}
+    for key, value in post.items():
+        for prefix, kind in BET_FIELD_PREFIXES.items():
+            position = key.removeprefix(prefix)
+            if key.startswith(prefix) and position.isdigit() and value.isdigit():
+                bets[(kind, int(position))] = int(value)
+    return bets
+
+
+def _bet_form(game, arena, decision, rows, names, victor_rows):
+    """Before a night (not the final duel), each player in the room may bet on who falls first:
+    the tributes in the room, then the past victors in the room."""
     living = arena.living()
     if decision is not None or arena.winner or not arena.round or len(living) <= 2:
         return None
     if not is_night_round(arena.round + 1):
         return None
-    bettors = [row for row in rows if row.present]
-    if not bettors:
+    seats = [(players.TRIBUTE, row, names[row.position]) for row in rows if row.present]
+    seats += [(players.VICTOR, row, victor_display_name(row)) for row in victor_rows if row.present]
+    if not seats:
         return None
 
-    def bettor(row):
-        entry = {"position": row.position, "name": names[row.position], "on_phone": bool(row.phone_token)}
+    def bettor(kind, row, name):
+        entry = {"field": _bet_field(kind, row.position), "name": name, "on_phone": bool(row.phone_token)}
         if row.phone_token:
-            target = services.coming_bet(game, row)
+            target = bet_tools.coming_bet(game, kind, row)
             entry["bet"] = names[target.position] if target else None
         return entry
 
     return {
-        "bettors": [bettor(row) for row in bettors],
+        "bettors": [bettor(kind, row, name) for kind, row, name in seats],
         "targets": [{"position": t.id, "name": names[t.id]} for t in living],
     }
+
+
+def _scores(game, names, victor_names):
+    """The bet scores so far, best first, with each player's name."""
+    return [
+        {
+            "name": victor_names[row.position] if kind == players.VICTOR else names[row.position],
+            "points": points,
+        }
+        for kind, row, points in bet_tools.bet_scores(game)
+    ]
 
 
 # Story lines worth repeating in the recap: the moments where the story turned.

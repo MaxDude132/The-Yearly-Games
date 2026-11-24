@@ -344,34 +344,61 @@ class FlowTests(TestCase):
             position = re.search(r'name="position" value="(\d+)"', page).group(1)
             self.client.post("/decision/", {"position": position, "choice": 0})
 
-    def test_bets_before_a_night_are_scored_after_it(self):
-        self.start(here=lambda position: position < 2)
+    def play_until_bets(self):
+        """Answers questions and presses Continue until the bets for the night are offered."""
         for _ in range(400):
             page = self.client.get("/").content.decode()
             if "New game" in page:
                 self.fail("never offered bets")
             if "data-bets" in page:
-                break
+                self.game.refresh_from_db()
+                return page
             if 'role="dialog"' in page:
                 position = re.search(r'name="position" value="(\d+)"', page).group(1)
                 self.client.post("/decision/", {"position": position, "choice": 0})
             else:
                 self.client.post("/round/next/")
+        self.fail("never offered bets")
+
+    def finish_the_round(self):
+        """Answers the open round's questions until it is saved."""
         self.game.refresh_from_db()
+        while self.game.round_seed is not None:
+            page = self.client.get("/").content.decode()
+            position = re.search(r'name="position" value="(\d+)"', page).group(1)
+            self.client.post("/decision/", {"position": position, "choice": 0})
+            self.game.refresh_from_db()
+
+    def test_bets_before_a_night_are_scored_after_it(self):
+        self.start(here=lambda position: position < 2)
+        self.play_until_bets()
         target = self.game.tributes.filter(alive=True).last()
         self.client.post("/round/next/", {"bet-0": target.position, "bet-1": "", "bet-5": target.position})
         bets = list(Bet.objects.filter(game=self.game))
         self.assertEqual(
             [(bet.bettor.position, bet.target_id) for bet in bets], [(0, target.pk)]
         )  # 5 is not here
-        self.game.refresh_from_db()
-        while self.game.round_seed is not None:  # answer the night's questions
-            page = self.client.get("/").content.decode()
-            position = re.search(r'name="position" value="(\d+)"', page).group(1)
-            self.client.post("/decision/", {"position": position, "choice": 0})
-            self.game.refresh_from_db()
+        self.finish_the_round()
         bet = Bet.objects.get(game=self.game)
         self.assertIn(bet.points, (0, 1, 3))
+
+    def test_past_victors_in_the_room_bet_on_the_night(self):
+        self.client.post("/roster/", setup_form(self.game, action="add-victor"))
+        self.client.post("/roster/", setup_form(self.game, action="add-victor"))
+        victors = {"victor-name-0": "Alex", "victor-here-0": "on", "victor-name-1": "Sam"}  # Sam is away
+        self.client.post("/roster/", setup_form(self.game, lambda position: False, action="start", **victors))
+        self.game.refresh_from_db()
+        page = self.play_until_bets()
+        self.assertIn('name="victor-bet-0"', page)
+        self.assertNotIn('name="victor-bet-1"', page)
+        target = self.game.tributes.filter(alive=True).last()
+        self.client.post("/round/next/", {"victor-bet-0": target.position, "victor-bet-1": target.position})
+        bet = Bet.objects.get(game=self.game)
+        self.assertEqual((bet.bettor, bet.victor.name, bet.target_id), (None, "Alex", target.pk))
+        self.finish_the_round()
+        bet.refresh_from_db()
+        self.assertIn(bet.points, (0, 1, 3))
+        self.assertRegex(self.client.get("/").content.decode(), rf"Alex {bet.points}")  # the score line
 
     def test_the_end_of_the_game_shows_a_recap(self):
         self.start(here=lambda position: False)

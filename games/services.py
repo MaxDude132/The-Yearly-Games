@@ -12,9 +12,10 @@ from django.db import transaction
 
 from content import models as content
 from games import models
+from games.bets import score_bets
 from games.engine.catalogue import ArenaEvent, Catalogue, Item, Line
 from games.engine.dice import Dice
-from games.engine.rounds import is_night_round, play_next_round
+from games.engine.rounds import play_next_round
 from games.engine.state import Arena, Entry, NeedAnswer
 from games.engine.state import Tribute as EngineTribute
 from games.engine.state import Victor as EngineVictor
@@ -285,71 +286,3 @@ def waiting_decision(game):
     if game.round_seed is None:
         return None
     return resume(game)[1]
-
-
-# ---------- bets ----------
-FIRST_TO_FALL_POINTS = 3
-FELL_THAT_NIGHT_POINTS = 1
-
-
-def place_bets(game, bets):
-    """Saves the bets the host entered for the coming night. bets: {bettor position: target position}.
-    Only players in the room bet, only on living tributes, and only before a night.
-    Players with a phone bet on their phone (place_bet): the host's form leaves their bets alone."""
-    coming = game.round + 1
-    if not is_night_round(coming):
-        return
-    rows = {row.position: row for row in game.tributes.all()}
-    game.bets.filter(round=coming, bettor__phone_token="").delete()
-    models.Bet.objects.bulk_create(
-        models.Bet(game=game, round=coming, bettor=rows[bettor], target=rows[target])
-        for bettor, target in bets.items()
-        if bettor in rows and target in rows and rows[bettor].present and rows[target].alive
-        and not rows[bettor].phone_token
-    )  # fmt: skip
-
-
-def place_bet(game, bettor, target_position):
-    """One player's bet for the coming night, from their phone. target_position None: no bet."""
-    coming = game.round + 1
-    if not is_night_round(coming) or not bettor.present:
-        return False
-    target = game.tributes.filter(position=target_position, alive=True).first()
-    game.bets.filter(round=coming, bettor=bettor).delete()
-    if target_position is not None and target is None:
-        return False
-    if target:
-        models.Bet.objects.create(game=game, round=coming, bettor=bettor, target=target)
-    return True
-
-
-def coming_bet(game, bettor):
-    """The tribute this player bet on for the coming night, or None."""
-    bet = game.bets.filter(round=game.round + 1, bettor=bettor).select_related("target").first()
-    return bet.target if bet else None
-
-
-def score_bets(game, arena, rows):
-    """After a night: 3 points for the first to fall, 1 for anyone else who fell that night."""
-    bets = list(game.bets.filter(round=arena.round, points=None))
-    if not bets:
-        return
-    cannon = next(entry for entry in reversed(arena.log) if entry.style == "cannon")
-    fallen = [rows[tribute_id].pk for tribute_id in cannon.names]
-    for bet in bets:
-        if fallen and bet.target_id == fallen[0]:
-            bet.points = FIRST_TO_FALL_POINTS
-        elif bet.target_id in fallen:
-            bet.points = FELL_THAT_NIGHT_POINTS
-        else:
-            bet.points = 0
-    models.Bet.objects.bulk_update(bets, ["points"])
-
-
-def bet_scores(game):
-    """[(bettor row, points)] for everyone who bet, best first."""
-    totals = {}
-    for bet in game.bets.exclude(points=None).select_related("bettor"):
-        row, points = totals.get(bet.bettor_id, (bet.bettor, 0))
-        totals[bet.bettor_id] = (row, points + bet.points)
-    return sorted(totals.values(), key=lambda pair: (-pair[1], pair[0].position))

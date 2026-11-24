@@ -10,6 +10,7 @@ from django.shortcuts import redirect, render
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
 
+from games import bets as bet_tools
 from games import players, services, views
 from games.engine.dice import Dice
 from games.engine.rounds import is_night_round
@@ -128,10 +129,10 @@ def _playing_page(request, game, kind, row):
         else:
             context["waiting_for"] = names[waiting_for.id]
 
-    if kind == players.TRIBUTE and row.present:
-        bets = views._bet_form(game, arena, decision, rows, names)
+    if row.present:  # tributes and past victors in the room both bet
+        bets = views._bet_form(game, arena, decision, rows, names, victor_rows)
         if bets:
-            target = services.coming_bet(game, row)
+            target = bet_tools.coming_bet(game, kind, row)
             context["bets"] = {"targets": bets["targets"], "current": target.position if target else None}
 
     context.update(
@@ -192,8 +193,8 @@ def decision(request, game):
 def bet(request, game):
     kind, row = players.my_seat(game, request.session)
     target = request.POST.get("target", "")
-    if kind == players.TRIBUTE and services.waiting_decision(game) is None:
-        services.place_bet(game, row, int(target) if target.isdigit() else None)
+    if row and services.waiting_decision(game) is None:
+        bet_tools.place_bet(game, kind, row, int(target) if target.isdigit() else None)
     return _home(game)
 
 

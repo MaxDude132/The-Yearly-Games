@@ -188,16 +188,39 @@ class Answer(models.Model):
 
 
 class Bet(models.Model):
-    """Before a night, a player in the room guesses who dies first that night."""
+    """Before a night, a player in the room guesses who dies first that night.
+    The player is a tribute (bettor) or a past victor (victor): exactly one of the two is set."""
 
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="bets")
     round = models.PositiveIntegerField()  # the night round the bet is about
-    bettor = models.ForeignKey(Tribute, on_delete=models.CASCADE, related_name="bets")
+    bettor = models.ForeignKey(Tribute, on_delete=models.CASCADE, related_name="bets", null=True, blank=True)
+    victor = models.ForeignKey(
+        PastVictor, on_delete=models.CASCADE, related_name="bets", null=True, blank=True
+    )
     target = models.ForeignKey(Tribute, on_delete=models.CASCADE, related_name="+")
     points = models.PositiveSmallIntegerField(null=True, blank=True)  # None until the night is over
 
     class Meta:
-        ordering = ["round", "bettor__position"]
+        ordering = ["round", "pk"]
         constraints = [
-            models.UniqueConstraint(fields=["game", "round", "bettor"], name="unique_bet_per_round")
+            models.UniqueConstraint(
+                fields=["game", "round", "bettor"],
+                condition=models.Q(bettor__isnull=False),
+                name="unique_bet_per_round",
+            ),
+            models.UniqueConstraint(
+                fields=["game", "round", "victor"],
+                condition=models.Q(victor__isnull=False),
+                name="unique_victor_bet_per_round",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(bettor__isnull=False, victor__isnull=True)
+                | models.Q(bettor__isnull=True, victor__isnull=False),
+                name="bet_has_one_bettor",
+            ),
         ]
+
+    @property
+    def player(self):
+        """The tribute or past victor who placed the bet."""
+        return self.bettor or self.victor
