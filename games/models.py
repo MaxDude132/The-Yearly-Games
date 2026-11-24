@@ -36,6 +36,10 @@ class Game(models.Model):
     # and the saved answers, so it always unfolds the same way.
     round_seed = models.BigIntegerField(null=True, blank=True)
     first_new_entry = models.PositiveIntegerField(default=0)  # story entries from here on are new
+    # Players join from their phones at /play/<join_code>/ (the QR code). Set the first time it is needed.
+    join_code = models.CharField(max_length=12, unique=True, null=True, blank=True)
+    # Goes up by one after every change, so open pages (the host's and the phones') know to reload.
+    version = models.PositiveIntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -48,6 +52,8 @@ class Tribute(models.Model):
     name = models.CharField(max_length=30, blank=True)
     photo = models.ImageField(upload_to="photos/", blank=True)
     present = models.BooleanField(default=True)  # in the room: makes their own choices
+    # Set when a player took this tribute from their phone; their phone's session holds the same token.
+    phone_token = models.CharField(max_length=32, blank=True, db_index=True)
     goal = models.CharField(
         max_length=10, blank=True
     )  # what the tribute does today: hunt, hide, scavenge, guard
@@ -78,6 +84,7 @@ class PastVictor(models.Model):
     name = models.CharField(max_length=30, blank=True)
     photo = models.ImageField(upload_to="photos/", blank=True)
     present = models.BooleanField(default=True)  # in the room
+    phone_token = models.CharField(max_length=32, blank=True, db_index=True)  # see Tribute.phone_token
     edition = models.PositiveSmallIntegerField(null=True, blank=True)  # which Games they won: 1 = the first
     year = models.PositiveSmallIntegerField(null=True, blank=True)  # the year they won (flavour only)
 

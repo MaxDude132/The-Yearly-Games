@@ -5,8 +5,9 @@ A Hunger Games-style simulator for our yearly game with friends. 24 tributes, on
 1. Type the names in district order: tributes 1 & 2 are District 1, tributes 3 & 4 District 2, and so on. Tap the circle next to a name to add a photo.
 2. Tick **here** for everyone in the room. You can change this during the game on the tribute board.
    Under **Past victors**, add the people who won an earlier Yearly Games (name, which Games they won, year, photo, here). They are not tributes. Under **Votes**, choose who votes for tributes who are not in the room: nobody, the dead (the default), past victors, both, or everyone. **Fair play** (on by default) keeps players out of votes about their own tribute or alliance.
+   **Phones (optional):** players scan the QR code under **Join on your phone** (also in the game's top bar for late arrivals). They pick a free tribute or past victor, type their name, may add a photo, and are marked as here. Their questions and their night bets then show up on their phone, with their character (state, items, alliance, grudges). The names they choose can't be overwritten from the setup form; 📱× disconnects a phone.
 3. Tap through the rounds: the Bloodbath, then Day 1, Night 1, Day 2...
-4. When a player in the room has a choice to make, a pop-up shows their name, how the tributes involved are doing, what links them, and who would likely win a fight. A normal round has up to 3 pop-ups, 4 when 8 or fewer are left, 6 when 4 or fewer are left. Pass the phone or tap for them. The app decides for everyone who isn't there.
+4. When a player in the room has a choice to make, a pop-up shows their name, how the tributes involved are doing, what links them, and who would likely win a fight. A normal round has up to 3 pop-ups, 4 when 8 or fewer are left, 6 when 4 or fewer are left. Pass the phone or tap for them. Players on their phones can answer there; the host's screen still shows every question and can answer it, or press **Let the dice decide** for someone who stepped away. Every open page checks for changes every 2 seconds and reloads (or offers an update button while someone is typing). The app decides for everyone who isn't there.
 
 What makes each game different:
 - **Districts:** partners start as friends (allied), rivals (they hate each other) or strangers.
@@ -65,6 +66,8 @@ games/
   render.py               turns story entries into text in the viewer's language
   roster.py               setup screen: tributes and past victors (names, who is here, photos)
   views.py, urls.py       the pages and actions
+  phone_views.py          the pages on players' phones (/play/<join code>/)
+  players.py              joining with the QR code, seats, whose turn it is
   styles.py               Tailwind classes chosen in Python (story line colours, status pills)
   templates/              HTML with Tailwind classes
   static/games/           a little JavaScript (press feedback, scrolling), icons

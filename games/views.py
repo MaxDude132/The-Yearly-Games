@@ -11,8 +11,8 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
 
+from games import players, services
 from games import roster as roster_tools
-from games import services
 from games.engine.combat import strength_bonus
 from games.engine.dice import Dice
 from games.engine.rounds import is_night_round
@@ -25,7 +25,8 @@ NEW = "?new=1"  # tells the page to open at the start of the newest round
 
 
 def with_game(view):
-    """Gives the view this browser's game, locked for the duration of the request."""
+    """Gives the view this browser's game, locked for the duration of the request.
+    After a POST, open pages (the host's other tabs, the players' phones) are told to reload."""
 
     @wraps(view)
     def wrapper(request, *args, **kwargs):
@@ -34,7 +35,10 @@ def with_game(view):
         with transaction.atomic():
             game = services.get_game(request.session.session_key)
             game = Game.objects.select_for_update().get(pk=game.pk)
-            return view(request, game, *args, **kwargs)
+            response = view(request, game, *args, **kwargs)
+            if request.method == "POST":
+                players.bump(game)
+            return response
 
     return wrapper
 
@@ -71,6 +75,9 @@ def _setup_page(request, game):
                 for row in victors
             ],
             "can_start": len(rows) >= services.MIN_TRIBUTES,
+            "join": _join(request, game),
+            "live_url": reverse("state"),
+            "version": game.version,
             "voter_choices": [
                 (Game.Voters.NOBODY, _("Nobody: the arena decides")),
                 (Game.Voters.DEAD, _("The dead")),
@@ -85,6 +92,12 @@ def _setup_page(request, game):
 
 def _letters(row):
     return display_name(row).strip()[:2]
+
+
+def _join(request, game):
+    """The link and QR code players scan to join from their phones."""
+    url = request.build_absolute_uri(reverse("play", args=[players.join_code(game)]))
+    return {"url": url, "qr": mark_safe(players.qr_svg(url))}
 
 
 def _victor_letters(row):
@@ -166,6 +179,9 @@ def _game_page(request, game):
             ],
             "recap": _recap(arena, translator, name_of, victor_name_of) if arena.winner else None,
             "confirm_quit": "confirm_quit" in request.GET,
+            "join": _join(request, game),
+            "live_url": reverse("state"),
+            "version": game.version,
         },
     )
 
@@ -251,6 +267,7 @@ def _decision_context(decision, rows, victor_rows, translator, names, game, aren
         "options": list(enumerate(_option_labels(decision, arena, translator, names))),
         "facts": _decision_facts(decision, arena, translator, names),
         "position": game.answers.count(),
+        "on_phone": bool(row.phone_token),  # the player can also answer on their phone
     }
 
 
@@ -354,6 +371,10 @@ def roster(request, game):
         roster_tools.add_victor(game)
     elif action.startswith("remove-victor-") and action[14:].isdigit():
         roster_tools.remove_victor(game, int(action[14:]))
+    elif action.startswith("release-victor-") and action[15:].isdigit():
+        players.release(game, players.VICTOR, int(action[15:]))
+    elif action.startswith("release-") and action[8:].isdigit():
+        players.release(game, players.TRIBUTE, int(action[8:]))
     elif action == "start":
         services.start_game(game)
     return redirect("index")
@@ -380,9 +401,19 @@ def next_round(request, game):
 @with_game
 def decision(request, game):
     position, choice = request.POST.get("position", ""), request.POST.get("choice", "")
-    if game.status == Game.Status.PLAYING and position.isdigit() and choice.isdigit():
-        services.answer_decision(game, int(position), int(choice))
+    if game.status == Game.Status.PLAYING and position.isdigit():
+        if choice == "random":  # "Let the dice decide": the player is not answering on their phone
+            services.answer_randomly(game, int(position))
+        elif choice.isdigit():
+            services.answer_decision(game, int(position), int(choice))
     return _home_new()
+
+
+@require_GET
+def state(request):
+    """The game's version number, for app.js to know when to reload. Light: no lock, no game made."""
+    game = Game.objects.filter(session_key=request.session.session_key or "").first()
+    return JsonResponse({"version": game.version if game else 0})
 
 
 @require_POST
@@ -423,8 +454,16 @@ def _bet_form(game, arena, decision, rows, names):
     bettors = [row for row in rows if row.present]
     if not bettors:
         return None
+
+    def bettor(row):
+        entry = {"position": row.position, "name": names[row.position], "on_phone": bool(row.phone_token)}
+        if row.phone_token:
+            target = services.coming_bet(game, row)
+            entry["bet"] = names[target.position] if target else None
+        return entry
+
     return {
-        "bettors": [{"position": row.position, "name": names[row.position]} for row in bettors],
+        "bettors": [bettor(row) for row in bettors],
         "targets": [{"position": t.id, "name": names[t.id]} for t in living],
     }
 

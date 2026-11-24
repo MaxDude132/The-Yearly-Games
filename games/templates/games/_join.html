@@ -1,0 +1,9 @@
+{% load i18n %}{# The QR code players scan to join from their phones. compact: a button in the header that opens it. #}
+<details class="{% if compact %}relative{% else %}rounded-md border border-gold p-3{% endif %}" {% if compact %}data-popover{% else %}open{% endif %}>
+  <summary class="{% if compact %}btn list-none{% else %}cursor-pointer font-semibold text-gold{% endif %}">📱 {% translate "Join on your phone" %}</summary>
+  <div class="{% if compact %}absolute right-0 z-20 mt-2 w-72 rounded-md border border-gold bg-panel p-3 shadow-lg{% else %}mt-2{% endif %} flex flex-col items-center gap-2 text-center">
+    <div class="w-56 max-w-full [&_svg]:h-auto [&_svg]:w-full">{{ join.qr }}</div>
+    <p class="m-0 text-sm text-moss">{% translate "Scan to choose your tribute and play on your own phone." %}</p>
+    <a class="text-sm break-all text-gold" href="{{ join.url }}">{{ join.url }}</a>
+  </div>
+</details>

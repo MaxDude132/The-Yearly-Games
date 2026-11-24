@@ -17,7 +17,11 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Instrument+Sans:wght@400;600&display=swap">
   {% tailwind_css %}
 </head>
-<body class="h-full bg-ground font-body text-base/[1.45] text-bone">
+{# data-live-url: app.js asks it for the game's version every few seconds and reloads when it changes. #}
+<body class="h-full bg-ground font-body text-base/[1.45] text-bone"{% if live_url %} data-live-url="{{ live_url }}" data-version="{{ version }}"{% endif %}>
+  <div class="fixed inset-x-0 top-0 z-30 hidden justify-center p-2" data-live-banner>
+    <button type="button" class="btn border-gold bg-panel text-gold" data-live-reload>{% translate "Something changed: update" %}</button>
+  </div>
   <div class="flex h-full flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
 {% block body %}{% endblock %}
   </div>

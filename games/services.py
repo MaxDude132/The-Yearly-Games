@@ -270,24 +270,63 @@ def answer_decision(game, position, choice):
     return True
 
 
+def answer_randomly(game, position):
+    """The host lets the dice answer the question now waiting (someone left their phone)."""
+    if game.round_seed is None:
+        return False
+    arena, decision = resume(game)
+    if decision is None:
+        return False
+    return answer_decision(game, position, secrets.randbelow(decision.option_count))
+
+
+def waiting_decision(game):
+    """The question now waiting for an answer, or None."""
+    if game.round_seed is None:
+        return None
+    return resume(game)[1]
+
+
 # ---------- bets ----------
 FIRST_TO_FALL_POINTS = 3
 FELL_THAT_NIGHT_POINTS = 1
 
 
 def place_bets(game, bets):
-    """Saves the bets for the coming night. bets: {bettor position: target position}.
-    Only players in the room bet, only on living tributes, and only before a night."""
+    """Saves the bets the host entered for the coming night. bets: {bettor position: target position}.
+    Only players in the room bet, only on living tributes, and only before a night.
+    Players with a phone bet on their phone (place_bet): the host's form leaves their bets alone."""
     coming = game.round + 1
     if not is_night_round(coming):
         return
     rows = {row.position: row for row in game.tributes.all()}
-    game.bets.filter(round=coming).delete()
+    game.bets.filter(round=coming, bettor__phone_token="").delete()
     models.Bet.objects.bulk_create(
         models.Bet(game=game, round=coming, bettor=rows[bettor], target=rows[target])
         for bettor, target in bets.items()
         if bettor in rows and target in rows and rows[bettor].present and rows[target].alive
-    )
+        and not rows[bettor].phone_token
+    )  # fmt: skip
+
+
+def place_bet(game, bettor, target_position):
+    """One player's bet for the coming night, from their phone. target_position None: no bet."""
+    coming = game.round + 1
+    if not is_night_round(coming) or not bettor.present:
+        return False
+    target = game.tributes.filter(position=target_position, alive=True).first()
+    game.bets.filter(round=coming, bettor=bettor).delete()
+    if target_position is not None and target is None:
+        return False
+    if target:
+        models.Bet.objects.create(game=game, round=coming, bettor=bettor, target=target)
+    return True
+
+
+def coming_bet(game, bettor):
+    """The tribute this player bet on for the coming night, or None."""
+    bet = game.bets.filter(round=game.round + 1, bettor=bettor).select_related("target").first()
+    return bet.target if bet else None
 
 
 def score_bets(game, arena, rows):

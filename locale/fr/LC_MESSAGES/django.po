@@ -272,3 +272,83 @@ msgstr "« Jeux nº » indique quels Jeux la personne a gagnés : 1 pour les pre
 #, python-format
 msgid "%(nth)s Games"
 msgstr "%(nth)s Jeux"
+
+#, python-format
+msgid "%(name)s can answer on their phone, or you can answer here."
+msgstr "%(name)s peut répondre sur son téléphone, ou tu peux répondre ici."
+
+msgid "Let the dice decide"
+msgstr "Laisser le hasard décider"
+
+msgid "Join on your phone"
+msgstr "Jouer sur son téléphone"
+
+msgid "Scan to choose your tribute and play on your own phone."
+msgstr "Scanne pour choisir ton personnage et jouer sur ton téléphone."
+
+msgid "Something changed: update"
+msgstr "Du nouveau : mettre à jour"
+
+msgid "has bet"
+msgstr "a parié"
+
+msgid "bets on their phone"
+msgstr "parie sur son téléphone"
+
+msgid "Playing on their phone"
+msgstr "Joue sur son téléphone"
+
+msgid "You are not in the arena: you send sponsor gifts to tributes."
+msgstr "Tu n'es pas dans l'arène : tu envoies des cadeaux aux tributs."
+
+msgid ""
+"You're in. Wait for the host to start the Games: your questions will show up "
+"here."
+msgstr ""
+
+msgid "You won the Games!"
+msgstr "Tu as gagné les Jeux!"
+
+#, python-format
+msgid "%(name)s wins the Games."
+msgstr "%(name)s remporte les Jeux."
+
+#, python-format
+msgid "Waiting for %(name)s to choose…"
+msgstr "En attente du choix de %(name)s…"
+
+msgid "Follow the story on the main screen. Your questions will show up here."
+msgstr "Suis l'histoire sur l'écran principal. Tes questions apparaîtront ici."
+
+msgid "Change my bet"
+msgstr "Changer mon pari"
+
+msgid "Place my bet"
+msgstr "Parier"
+
+msgid "Not you? Choose another seat"
+msgstr "Ce n'est pas toi? Choisir un autre personnage"
+
+msgid "Your name"
+msgstr "Ton nom"
+
+msgid "Photo (optional)"
+msgstr "Photo (facultative)"
+
+msgid "Back"
+msgstr "Retour"
+
+msgid "Join"
+msgstr "Rejoindre"
+
+msgid "Choose who you are. Your questions will show up on this phone."
+msgstr "Choisis qui tu es. Tes questions apparaîtront sur ce téléphone."
+
+msgid "Every seat is taken. Ask the host to add one."
+msgstr "Toutes les places sont prises. Demande à l'hôte d'en ajouter une."
+
+msgid "Chosen on their phone"
+msgstr "Choisi sur son téléphone"
+
+msgid "Disconnect the phone"
+msgstr "Déconnecter le téléphone"

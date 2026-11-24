@@ -42,19 +42,22 @@ def save_roster(game, post, files):
     Tribute fields are named name-3, here-3, photo-3; past victor fields victor-name-3, victor-here-3..."""
     rows = list(game.tributes.order_by("position"))
     for row in rows:
-        row.name = post.get(f"name-{row.position}", row.name).strip()[:NAME_MAX_LENGTH]
         row.present = f"here-{row.position}" in post
+        if row.phone_token:  # the player chose their name and photo on their phone
+            continue
+        row.name = post.get(f"name-{row.position}", row.name).strip()[:NAME_MAX_LENGTH]
         save_photo(row, files.get(f"photo-{row.position}"))
     Tribute.objects.bulk_update(rows, ["name", "present", "photo"])
 
     victors = list(game.victors.order_by("position"))
     for row in victors:
         prefix = f"victor-{{}}-{row.position}"
-        row.name = post.get(prefix.format("name"), row.name).strip()[:NAME_MAX_LENGTH]
         row.present = prefix.format("here") in post
+        if not row.phone_token:  # see above
+            row.name = post.get(prefix.format("name"), row.name).strip()[:NAME_MAX_LENGTH]
+            save_photo(row, files.get(prefix.format("photo")))
         row.edition = parse_edition(post.get(prefix.format("edition"), ""))
         row.year = parse_year(post.get(prefix.format("year"), ""))
-        save_photo(row, files.get(prefix.format("photo")))
     PastVictor.objects.bulk_update(victors, ["name", "present", "edition", "year", "photo"])
 
     voters = post.get("voters", game.voters)

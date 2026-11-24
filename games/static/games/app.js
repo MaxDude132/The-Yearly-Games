@@ -1,5 +1,5 @@
 // Small touches on top of the server-rendered pages: press feedback, scrolling the story,
-// the phone story/board switch, the "here" ticks and photo upload. All game logic is on the server.
+// the phone story/board switch, the "here" ticks, photo upload and live updates. All game logic is on the server.
 const PRESS_TIME = 160; // milliseconds a tapped button stays pressed before its form is sent
 let pressing = false;
 
@@ -52,4 +52,45 @@ if (story) {
   const firstNew = document.getElementById(`entry-${story.dataset.firstNew}`);
   if (firstNew) firstNew.scrollIntoView({ block: 'start' });
   else story.scrollTop = story.scrollHeight;
+}
+
+// Live updates: players answer on their phones, so every page asks the server every few seconds
+// whether the game changed, and reloads. If the person is typing or choosing something, a button
+// offers the update instead, so nothing they entered is lost.
+const liveUrl = document.body.dataset.liveUrl;
+if (liveUrl) {
+  const CHECK_EVERY = 2000; // milliseconds
+  const banner = document.querySelector('[data-live-banner]');
+  let edited = false;
+  document.addEventListener('input', () => { edited = true; });
+
+  const reload = () => {
+    // The host's game page opens at the start of the newest round, as after pressing Continue.
+    if (document.getElementById('story')) location.href = `${location.pathname}?new=1`;
+    else location.reload();
+  };
+
+  const check = async () => {
+    if (document.hidden || pressing) return;
+    try {
+      const response = await fetch(liveUrl, { cache: 'no-store' });
+      const { version } = await response.json();
+      if (String(version) === document.body.dataset.version) return;
+      const busy = edited || document.activeElement?.matches('input, select, textarea')
+        || document.querySelector('details[open][data-popover]');
+      if (busy) {
+        banner.classList.replace('hidden', 'flex');
+      } else {
+        reload();
+      }
+    } catch {
+      // offline for a moment: try again on the next check
+    }
+  };
+
+  setInterval(check, CHECK_EVERY);
+  document.addEventListener('visibilitychange', check);
+  document.addEventListener('click', (event) => {
+    if (event.target.closest('[data-live-reload]')) reload();
+  });
 }

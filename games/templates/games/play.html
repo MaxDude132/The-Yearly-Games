@@ -1,0 +1,54 @@
+{% extends "games/base.html" %}
+{% load i18n %}
+{% block body %}
+    <header class="flex items-center justify-between gap-4 border-b px-4 py-3 {% if is_night %}border-moon{% else %}border-line{% endif %}">
+      <div>
+        {% if title %}{% include "games/_title.html" %}<span class="text-moss tabular-nums">{{ alive_count }} / {{ total }} {% translate "alive" %}</span>
+        {% else %}{% translate "The Yearly Games" as title %}{% include "games/_title.html" %}{% endif %}
+      </div>
+      <div class="flex flex-wrap items-center gap-2.5">{% include "games/_language.html" %}</div>
+    </header>
+    <main class="mx-auto flex w-full max-w-120 flex-col gap-4 overflow-y-auto p-4">
+      {# Who I am #}
+      <div class="flex flex-col gap-1 rounded-md border border-line bg-panel px-3 py-3 {% if card and not card.alive %}opacity-75{% endif %}" data-my-seat>
+        <div class="flex flex-wrap items-center gap-2">
+          {% include "games/_avatar.html" with tribute=seat letters=letters %}
+          <span class="min-w-24 flex-1 font-display text-2xl leading-none font-black uppercase wrap-anywhere">{{ name }}</span>
+          {% if card %}<span class="rounded-full border px-2 py-0.5 text-xs whitespace-nowrap {{ card.status_classes }}">{{ card.status_text }}</span>{% endif %}
+        </div>
+        {% if is_victor %}<div class="text-[.85rem] text-gold">{% translate "Past victor" %}{% if victor_games %} · {{ victor_games }}{% endif %}{% if seat.year %} · {{ seat.year }}{% endif %}</div>
+        <div class="text-[.85rem] text-moss">{% translate "You are not in the arena: you send sponsor gifts to tributes." %}</div>{% endif %}
+        {% if card.items %}<div class="flex flex-wrap gap-1 text-[.8rem]">{% for item in card.items %}<span class="rounded border border-line px-1.5 py-px text-gold">{{ item }}</span>{% endfor %}</div>{% endif %}
+        {% if card %}<div class="text-[.8rem] text-moss">{% for part in card.details %}{% if not forloop.first %} · {% endif %}{{ part }}{% endfor %}</div>{% endif %}
+      </div>
+
+      {# What is happening #}
+      {% if waiting_to_start %}
+      <p class="m-0 text-moss">{% translate "You're in. Wait for the host to start the Games: your questions will show up here." %}</p>
+      {% elif winner %}
+      <p class="m-0 rounded-md border-2 border-gold p-4 font-display text-[clamp(1.6rem,7vw,2.2rem)] leading-tight font-black text-gold uppercase">
+        {% if i_won %}{% translate "You won the Games!" %}{% else %}{% blocktranslate with name=winner %}{{ name }} wins the Games.{% endblocktranslate %}{% endif %}</p>
+      {% elif waiting_for %}
+      <p class="m-0 text-moss">{% blocktranslate with name=waiting_for %}Waiting for {{ name }} to choose…{% endblocktranslate %}</p>
+      {% elif not decision %}
+      <p class="m-0 text-moss">{% translate "Follow the story on the main screen. Your questions will show up here." %}</p>
+      {% endif %}
+
+      {% if bets %}
+      <form method="post" action="{% url 'play_bet' game.join_code %}" class="flex flex-col gap-2 rounded-md border border-moon p-4" data-bets>{% csrf_token %}
+        <h2 class="m-0 font-display text-2xl leading-none font-bold tracking-[.06em] text-moon uppercase">{% translate "Bets for the night" %}</h2>
+        <p class="m-0 text-sm text-moss">{% translate "Who falls first tonight? 3 points for the first to fall, 1 point if they fall later in the night." %}</p>
+        <select name="target" class="rounded-md border border-line bg-panel px-2 py-2">
+          <option value="">{% translate "No bet" %}</option>
+          {% for target in bets.targets %}<option value="{{ target.position }}" {% if target.position == bets.current %}selected{% endif %}>{{ target.name }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="btn">{% if bets.current is not None %}{% translate "Change my bet" %}{% else %}{% translate "Place my bet" %}{% endif %}</button>
+      </form>
+      {% endif %}
+
+      <form method="post" action="{% url 'play_leave' game.join_code %}" class="mt-auto">{% csrf_token %}
+        <button type="submit" class="btn text-sm text-moss">{% translate "Not you? Choose another seat" %}</button>
+      </form>
+    </main>
+    {% if decision %}{% url 'play_decision' game.join_code as decision_url %}{% include "games/_decision.html" with action=decision_url %}{% endif %}
+{% endblock %}
