@@ -5,7 +5,9 @@
       {% translate "The Yearly Games" as title %}{% include "games/_title.html" %}
       <div class="flex flex-wrap items-center gap-2.5">{% include "games/_language.html" %}</div>
     </header>
-    <main class="mx-auto flex w-full max-w-176 flex-col gap-4 overflow-y-auto p-4">
+    {# relative: the hidden photo inputs (sr-only, absolutely placed) stay inside the scrolling list.
+       Without it they hang below the page, which lets the whole page scroll past the Start button. #}
+    <main class="relative mx-auto flex w-full max-w-176 flex-col gap-4 overflow-y-auto p-4">
       <p class="m-0 max-w-[65ch] text-moss">{% translate "One victor, chosen by luck. Tick who is in the room: they make their own choices, and the arena decides for everyone else. Each pair in the list is a district: they may enter as friends, rivals or strangers. Tap a circle to add a photo." %}</p>
       {% include "games/_join.html" %}
       <form method="post" action="{% url 'roster' %}" enctype="multipart/form-data">{% csrf_token %}
@@ -15,7 +17,7 @@
           {% for row in rows %}{% with tribute=row.tribute %}
           <li class="flex items-center gap-2">
             <span class="w-[1.9rem] text-xs text-moss tabular-nums">D{{ tribute.district }}</span>
-            <label class="inline-flex cursor-pointer rounded-full transition duration-100 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-gold active:translate-y-0.5 active:scale-98" title="{% translate 'Photo of' %} {% translate 'Tribute' %} {{ row.number }}">
+            <label class="relative inline-flex cursor-pointer rounded-full transition duration-100 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-gold active:translate-y-0.5 active:scale-98" title="{% translate 'Photo of' %} {% translate 'Tribute' %} {{ row.number }}">
               {% include "games/_avatar.html" with letters="" %}
               <input type="file" name="photo-{{ tribute.position }}" data-photo accept="image/*"
                 class="sr-only" aria-label="{% translate 'Photo of' %} {% translate 'Tribute' %} {{ row.number }}">
@@ -40,7 +42,7 @@
           <ol class="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(23rem,1fr))] gap-2 p-0">
             {% for row in victors %}{% with victor=row.victor %}
             <li class="flex items-center gap-2">
-              <label class="inline-flex cursor-pointer rounded-full transition duration-100 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-gold active:translate-y-0.5 active:scale-98" title="{% translate 'Photo of' %} {% translate 'Past victor' %} {{ row.number }}">
+              <label class="relative inline-flex cursor-pointer rounded-full transition duration-100 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-gold active:translate-y-0.5 active:scale-98" title="{% translate 'Photo of' %} {% translate 'Past victor' %} {{ row.number }}">
                 {% include "games/_avatar.html" with tribute=victor letters="" %}
                 <input type="file" name="victor-photo-{{ victor.position }}" data-photo accept="image/*"
                   class="sr-only" aria-label="{% translate 'Photo of' %} {% translate 'Past victor' %} {{ row.number }}">
