@@ -5,8 +5,7 @@
       {% translate "The Yearly Games" as title %}{% include "games/_title.html" %}
       <div class="flex flex-wrap items-center gap-2.5">{% include "games/_language.html" %}</div>
     </header>
-    {# relative: the hidden photo inputs (sr-only, absolutely placed) stay inside the scrolling list.
-       Without it they hang below the page, which lets the whole page scroll past the Start button. #}
+    {# relative keeps the hidden photo inputs inside the list, so the page can't scroll past Start. #}
     <main class="relative mx-auto flex w-full max-w-176 flex-col gap-4 overflow-y-auto p-4">
       <p class="m-0 max-w-[65ch] text-moss">{% translate "One victor, chosen by luck. Tick who is in the room: they make their own choices, and the arena decides for everyone else. Each pair in the list is a district: they may enter as friends, rivals or strangers. Tap a circle to add a photo." %}</p>
       {% include "games/_join.html" %}
