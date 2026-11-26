@@ -401,11 +401,12 @@ class FlowTests(TestCase):
         self.assertRegex(self.client.get("/").content.decode(), rf"Alex {bet.points}")  # the score line
 
     def test_the_fallen_appear_in_the_sky_after_a_round(self):
-        self.start(here=lambda position: False)
-        self.client.post("/round/next/")  # the Bloodbath: nobody in the room, so nobody is asked
+        self.start(here=lambda position: False)  # nobody in the room, so nobody is asked
+        dead = Tribute.objects.filter(game=self.game, alive=False)
+        while not dead.exists():  # rarely, a round ends without a cannon
+            self.client.post("/round/next/")
         page = self.client.get("/?new=1").content.decode()
-        fallen = Tribute.objects.filter(game=self.game, alive=False).count()
-        self.assertGreater(fallen, 0)
+        fallen = dead.count()
         sky = page[page.index("data-fallen") :]
         self.assertEqual(sky[: sky.index("</div>")].count("<figure"), fallen)
         self.assertNotIn("data-fallen", self.client.get("/").content.decode())  # only for the newest round

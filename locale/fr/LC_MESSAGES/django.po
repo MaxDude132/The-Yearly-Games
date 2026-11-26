@@ -370,3 +370,9 @@ msgstr "Son du canon"
 
 msgid "The fallen"
 msgstr "Les tributs tombés"
+
+msgid "Open the TV screen"
+msgstr "Ouvrir l’écran télé"
+
+msgid "%(name)s decides…"
+msgstr "%(name)s choisit…"

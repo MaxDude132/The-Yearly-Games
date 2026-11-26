@@ -1,6 +1,6 @@
 from django.urls import path
 
-from games import phone_views, views
+from games import phone_views, tv_views, views
 
 urlpatterns = [
     path("", views.index, name="index"),
@@ -20,4 +20,6 @@ urlpatterns = [
     path("play/<str:code>/decision/", phone_views.decision, name="play_decision"),
     path("play/<str:code>/bet/", phone_views.bet, name="play_bet"),
     path("play/<str:code>/state/", phone_views.state, name="play_state"),
+    # The big screen: the story for the whole room, nothing to press
+    path("tv/<str:code>/", tv_views.tv, name="tv"),
 ]

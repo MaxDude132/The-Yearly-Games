@@ -1,0 +1,9 @@
+{% load i18n %}{# The end-of-game recap: the host's screen, the TV and the shared recap page. #}
+<div class="mt-6 flex max-w-[65ch] flex-col gap-2 rounded-md border border-gold p-4" data-recap>
+  <h2 class="m-0 font-display text-2xl leading-none font-bold tracking-[.06em] text-gold uppercase">{% translate "Recap" %}</h2>
+  <p class="m-0">{% blocktranslate with name=recap.winner kills=recap.winner_kills %}{{ name }} wins with {{ kills }} kills.{% endblocktranslate %}{% if recap.deadliest and recap.deadliest != recap.winner %} {% blocktranslate with name=recap.deadliest kills=recap.deadliest_kills %}The deadliest tribute was {{ name }}, with {{ kills }} kills.{% endblocktranslate %}{% endif %}</p>
+  {% if recap.moments %}<h3 class="m-0 text-sm tracking-widest text-ember uppercase">{% translate "Turning points" %}</h3>
+  <ul class="m-0 flex list-none flex-col gap-1 p-0 [&_b]:font-semibold">{% for moment in recap.moments %}<li>{{ moment }}</li>{% endfor %}</ul>{% endif %}
+  {% if scores %}<h3 class="m-0 text-sm tracking-widest text-ember uppercase">{% translate "Best guesses" %}</h3>
+  <ol class="m-0 pl-5">{% for score in scores %}<li>{{ score.name }}: {{ score.points }} {% translate "points" %}</li>{% endfor %}</ol>{% endif %}
+</div>

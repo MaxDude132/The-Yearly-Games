@@ -1,0 +1,37 @@
+{% extends "games/base.html" %}
+{% load i18n %}
+{% block body %}
+    <header class="flex items-center justify-between gap-6 border-b px-8 py-5 {% if is_night %}border-moon{% else %}border-line{% endif %}">
+      <div>
+        <h1 class="m-0 font-display text-[clamp(2.4rem,5vw,4.5rem)] leading-none font-black tracking-[.03em] uppercase">{{ title }}</h1>
+        {% if not waiting %}<span class="text-[clamp(1rem,1.6vw,1.6rem)] text-moss tabular-nums">{{ alive_count }} / {{ total }} {% translate "alive" %}</span>{% endif %}
+        {% if rehearsal %}<span class="ml-3 rounded-md border border-gold px-2 py-0.5 text-gold">🧪 {% translate "Rehearsal: nothing here counts" %}</span>{% endif %}
+      </div>
+      <div class="flex items-center gap-4">
+        <button type="button" class="btn aria-pressed:border-gold aria-pressed:text-gold" data-cannon-toggle aria-pressed="false">💥 {% translate "Cannon sound" %}</button>
+        {% if not waiting %}<div class="w-28 [&_svg]:h-auto [&_svg]:w-full" title="{% translate 'Join on your phone' %}">{{ join.qr }}</div>{% endif %}
+      </div>
+    </header>
+    {% if waiting %}
+    <main class="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
+      <div class="w-[min(60vh,28rem)] [&_svg]:h-auto [&_svg]:w-full">{{ join.qr }}</div>
+      <p class="m-0 text-[clamp(1.2rem,2.4vw,2.2rem)]">{% translate "Scan to choose your tribute and play on your own phone." %}</p>
+      <p class="m-0 text-gold">{{ join.url }}</p>
+    </main>
+    {% else %}
+    {# Big letters: the room reads it from the sofa. #}
+    <main class="overflow-y-auto px-8 py-6 text-[clamp(1.2rem,2.2vw,2.1rem)] after:block after:h-[60vh] after:content-['']" id="story" data-first-new="{{ first_new }}">
+      {% include "games/_story.html" %}
+      {% if recap %}{% include "games/_recap.html" %}{% endif %}
+    </main>
+    {% if decision %}
+    <aside class="fixed inset-x-0 bottom-0 flex items-center gap-5 border-t-2 border-ember bg-panel px-8 py-5" role="status">
+      {% include "games/_avatar.html" with tribute=decision.tribute letters=decision.letters big=True %}
+      <div class="flex flex-col gap-1">
+        <span class="font-display text-[clamp(1.6rem,3vw,3rem)] leading-none font-black uppercase">{% blocktranslate with name=decision.name %}{{ name }} decides…{% endblocktranslate %}</span>
+        <span class="text-[clamp(1rem,1.8vw,1.7rem)] text-moss">{{ decision.question }}</span>
+      </div>
+    </aside>
+    {% endif %}
+    {% endif %}
+{% endblock %}

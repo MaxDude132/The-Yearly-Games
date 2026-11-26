@@ -97,22 +97,24 @@ def _letters(row):
 
 def _join(request, game):
     """The link and QR code players scan to join from their phones."""
-    url = request.build_absolute_uri(reverse("play", args=[players.join_code(game)]))
-    return {"url": url, "qr": mark_safe(players.qr_svg(url))}
+    code = players.join_code(game)
+    url = request.build_absolute_uri(reverse("play", args=[code]))
+    return {"url": url, "qr": mark_safe(players.qr_svg(url)), "tv_url": reverse("tv", args=[code])}
 
 
 def _victor_letters(row):
     return victor_display_name(row).strip()[:2]
 
 
-def _game_page(request, game):
+def _game_page(request, game, template="games/game.html", **extra):
+    """The game page: the host's screen, or the TV (tv_views.py), which adds its own context in extra."""
     catalogue = services.load_catalogue()
     if game.round_seed is None:
         arena, decision = services.load_arena(game, catalogue, Dice(), _no_answers), None
     else:
         arena, decision = services.resume(game, catalogue)
         if decision is None:  # the round just completed (another tab answered the last question)
-            return _home_new()
+            return redirect(request.path + NEW)
 
     translator = Translator(current_language())
     rows = list(game.tributes.order_by("position"))
@@ -148,7 +150,7 @@ def _game_page(request, game):
 
     return render(
         request,
-        "games/game.html",
+        template,
         {
             "title": translator.phase(arena.round, arena.day, night)
             if arena.round
@@ -185,7 +187,8 @@ def _game_page(request, game):
             "join": _join(request, game),
             "live_url": reverse("state"),
             "version": game.version,
-        },
+        }
+        | extra,
     )
 
 

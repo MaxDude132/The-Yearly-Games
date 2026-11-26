@@ -1,0 +1,4 @@
+{% load i18n %}{# The story lines, with the faces of the fallen under each new cannon line. #}
+{% for entry in entries %}{% if entry.heading %}<h2 id="entry-{{ entry.index }}" class="{{ entry.classes }}">{{ entry.html }}</h2>
+{% else %}<p id="entry-{{ entry.index }}" class="{{ entry.classes }} [&_b]:font-semibold">{{ entry.html }}</p>
+{% endif %}{% if entry.fallen %}{% include "games/_fallen.html" with fallen=entry.fallen %}{% endif %}{% empty %}<p class="mb-2 max-w-[65ch] border-l-3 border-line py-0.5 pl-3">{% translate "The tributes rise into the arena." %}</p>{% endfor %}

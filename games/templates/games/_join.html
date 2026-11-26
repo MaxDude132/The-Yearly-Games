@@ -5,5 +5,6 @@
     <div class="w-56 max-w-full [&_svg]:h-auto [&_svg]:w-full">{{ join.qr }}</div>
     <p class="m-0 text-sm text-moss">{% translate "Scan to choose your tribute and play on your own phone." %}</p>
     <a class="text-sm break-all text-gold" href="{{ join.url }}">{{ join.url }}</a>
+    {% if join.tv_url and not tv %}<a class="btn text-sm" href="{{ join.tv_url }}" target="_blank">📺 {% translate "Open the TV screen" %}</a>{% endif %}
   </div>
 </details>
