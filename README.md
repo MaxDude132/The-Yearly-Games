@@ -24,6 +24,7 @@ What makes each game different:
 - **Votes:** once per round, when a tribute who is not in the room faces a big decision (a meeting, an alliance offer, a sleeping target, loyalty, mercy), the chosen voters each get a pop-up. The majority wins, and a tie goes to the dice. With no voters, the dice decide.
 - **Bounties:** a fallen player in the room may put a price on a living tribute. Two others take the job and now hunt them. When two or more fallen players are in the room, they sometimes vote together on the next disaster.
 - **Bets:** before each night, everyone in the room (tributes and past victors) may guess who falls first: 3 points if right, 1 point if that tribute falls later in the night.
+- **Undo:** the host can take back the last answer, or the whole last round. The game is played again from the gong with the same dice and answers, minus that round.
 - **Recap:** the end of the game lists the victor's kills, the deadliest tribute, the turning points (betrayals, mercy, bounties, revenge) and the best guessers.
 - **Final duel:** the last two each pick a tactic (charge, ambush, wait). It works like rock-paper-scissors: the better tactic gives an edge, but luck decides.
 - **Save:** the game is saved on the server after every round and belongs to your browser (a session cookie). Close the page and pick up later.

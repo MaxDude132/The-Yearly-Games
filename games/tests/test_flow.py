@@ -168,7 +168,7 @@ class FlowTests(TestCase):
         self.client.post("/decision/", {"position": 0, "choice": 2})  # a double tap
         self.game.refresh_from_db()
         self.assertEqual(self.game.round, 1)  # the Bloodbath finished, with one question
-        self.assertEqual(Answer.objects.count(), 0)  # answers are cleared once the round is saved
+        self.assertEqual(Answer.objects.count(), 1)  # one answer, the double tap is ignored (kept for Undo)
         self.assertGreater(self.game.log.count(), 10)
 
     def test_every_question_can_be_answered_to_the_end(self):

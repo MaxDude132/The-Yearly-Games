@@ -18,5 +18,6 @@
           {% endfor %}
           {% if host %}<button type="submit" class="btn mt-1 px-4 py-2.5 text-left text-moss" name="choice" value="random">🎲 {% translate "Let the dice decide" %}</button>{% endif %}
         </form>
+        {% if host %}<form method="post" action="{% url 'undo' %}">{% csrf_token %}<button type="submit" class="btn w-full px-4 py-2.5 text-left text-moss">↶ {% translate "Undo" %}</button></form>{% endif %}
       </div>
     </div>

@@ -69,19 +69,33 @@ def start_game(game):
 @transaction.atomic
 def reset_game(game):
     """Back to the setup screen. The roster and the past victors (names, photos, who is here) are kept."""
-    game.log.all().delete()
+    clear_arena(game)
     game.answers.all().delete()
+    game.played_rounds.all().delete()
+    game.bets.all().delete()
+    game.status = models.Game.Status.SETUP
+    game.save(update_fields=["status", "updated_at"])
+
+
+def clear_arena(game):
+    """Undoes everything the Games did to the tributes and the story, as before the gong.
+    The answers, played rounds and bets stay (Undo replays them)."""
+    game.log.all().delete()
     models.TributeItem.objects.filter(tribute__game=game).delete()
     models.TributeTag.objects.filter(tribute__game=game).delete()
     models.Grudge.objects.filter(tribute__game=game).delete()
-    game.bets.all().delete()
+    models.Debt.objects.filter(tribute__game=game).delete()
     game.tributes.update(alive=True, wounded=False, alliance=0, kills=0, died_on_day=0, goal="")
-    game.status = models.Game.Status.SETUP
     game.round = game.day = game.alliance_count = game.first_new_entry = 0
     game.feast_happened = False
     game.winner = None
     game.round_seed = None
     game.save()
+
+
+def current_answers(game):
+    """The answers of the round in progress."""
+    return game.answers.filter(round=game.round + 1)
 
 
 # ---------- database to engine and back ----------
@@ -215,7 +229,6 @@ def save_arena(game, arena):
     game.winner = rows[arena.winner.id] if arena.winner else None
     game.round_seed = None
     game.save()
-    game.answers.all().delete()
     score_bets(game, arena, rows)
 
 
@@ -226,9 +239,18 @@ def start_round(game):
     """Begins the next round. Returns what resume() returns."""
     game.round_seed = secrets.randbits(62)
     game.first_new_entry = game.log.count()
-    game.answers.all().delete()
+    current_answers(game).delete()
     game.save(update_fields=["round_seed", "first_new_entry", "updated_at"])
+    record_round(game)
     return resume(game)
+
+
+def record_round(game):
+    """Remembers the round now starting, so Undo can play it again."""
+    game.played_rounds.filter(number=game.round + 1).delete()
+    played = models.PlayedRound.objects.create(game=game, number=game.round + 1, seed=game.round_seed)
+    played.present_tributes.set(game.tributes.filter(present=True))
+    played.present_victors.set(game.victors.filter(present=True))
 
 
 def resume(game, catalogue=None):
@@ -238,7 +260,7 @@ def resume(game, catalogue=None):
     Otherwise decision is the question waiting for an answer, and arena shows the story so far.
     """
     catalogue = catalogue or load_catalogue()
-    answers = list(game.answers.order_by("position").values_list("choice", flat=True))
+    answers = list(current_answers(game).values_list("choice", flat=True))
     cursor = iter(answers)
 
     def ask(decision):
@@ -262,11 +284,11 @@ def answer_decision(game, position, choice):
     question now waiting (an old page, a double tap, an option that does not exist)."""
     if game.round_seed is None:
         return False
-    answered = game.answers.count()
+    answered = current_answers(game).count()
     arena, decision = resume(game)
     if decision is None or position != answered or not 0 <= choice < decision.option_count:
         return False
-    models.Answer.objects.create(game=game, position=answered, choice=choice)
+    models.Answer.objects.create(game=game, round=game.round + 1, position=answered, choice=choice)
     resume(game)
     return True
 

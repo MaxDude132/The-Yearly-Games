@@ -352,3 +352,6 @@ msgstr "Choisi sur son téléphone"
 
 msgid "Disconnect the phone"
 msgstr "Déconnecter le téléphone"
+
+msgid "Undo"
+msgstr "Annuler"

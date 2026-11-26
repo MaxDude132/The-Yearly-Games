@@ -77,6 +77,7 @@
       {% else %}
       <form method="get" action="{% url 'index' %}"><button type="submit" class="btn" name="confirm_quit" value="1">{% translate "Quit" %}</button></form>
       {% endif %}
+      {% if can_undo %}<form method="post" action="{% url 'undo' %}">{% csrf_token %}<button type="submit" class="btn">↶ {% translate "Undo" %}</button></form>{% endif %}
       <button type="button" class="btn hidden max-md:block" data-toggle-board data-board-label="{% translate 'Tributes' %}" data-story-label="{% translate 'Story' %}">{% translate "Tributes" %}</button>
       <form method="post" action="{% url 'next_round' %}" id="next-round">{% csrf_token %}
         <button type="submit" class="btn btn-main" {% if round_waiting %}disabled{% endif %}>{{ main_button }}</button>

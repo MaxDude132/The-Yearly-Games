@@ -8,6 +8,7 @@ urlpatterns = [
     path("round/next/", views.next_round, name="next_round"),
     path("decision/", views.decision, name="decision"),
     path("quit/", views.quit_game, name="quit"),
+    path("undo/", views.undo_last, name="undo"),
     path("tributes/<int:position>/present/", views.set_present, name="present"),
     path("victors/<int:position>/present/", views.set_victor_present, name="victor_present"),
     path("state/", views.state, name="state"),

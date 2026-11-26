@@ -12,7 +12,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
 
 from games import bets as bet_tools
-from games import players, services
+from games import players, services, undo
 from games import roster as roster_tools
 from games.engine.combat import strength_bonus
 from games.engine.dice import Dice
@@ -178,6 +178,7 @@ def _game_page(request, game):
             "scores": _scores(game, names, victor_names),
             "recap": _recap(arena, translator, name_of, victor_name_of) if arena.winner else None,
             "confirm_quit": "confirm_quit" in request.GET,
+            "can_undo": undo.can_undo(game),
             "join": _join(request, game),
             "live_url": reverse("state"),
             "version": game.version,
@@ -265,7 +266,7 @@ def _decision_context(decision, rows, victor_rows, translator, names, game, aren
         "question": translator.question_text(decision, names.__getitem__, victor_name_of=victor_names.get),
         "options": list(enumerate(_option_labels(decision, arena, translator, names))),
         "facts": _decision_facts(decision, arena, translator, names),
-        "position": game.answers.count(),
+        "position": services.current_answers(game).count(),
         "on_phone": bool(row.phone_token),  # the player can also answer on their phone
     }
 
@@ -401,6 +402,14 @@ def decision(request, game):
             services.answer_randomly(game, int(position))
         elif choice.isdigit():
             services.answer_decision(game, int(position), int(choice))
+    return _home_new()
+
+
+@require_POST
+@with_game
+def undo_last(request, game):
+    """Takes back the last answer or the last round (see undo.py)."""
+    undo.undo(game)
     return _home_new()
 
 

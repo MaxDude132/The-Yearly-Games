@@ -176,15 +176,33 @@ class LogEntryName(models.Model):
 
 
 class Answer(models.Model):
-    """A choice a player made during the round in progress, in the order they were asked."""
+    """A choice a player made during a round, in the order they were asked. Kept after the round,
+    so Undo can replay the game (see PlayedRound)."""
 
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="answers")
+    round = models.PositiveIntegerField(default=0)
     position = models.PositiveIntegerField()
     choice = models.PositiveSmallIntegerField()
 
     class Meta:
-        ordering = ["position"]
-        constraints = [models.UniqueConstraint(fields=["game", "position"], name="unique_answer_position")]
+        ordering = ["round", "position"]
+        constraints = [
+            models.UniqueConstraint(fields=["game", "round", "position"], name="unique_answer_position")
+        ]
+
+
+class PlayedRound(models.Model):
+    """What it takes to play a round again: its seed, its answers (Answer.round) and who was in the room."""
+
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="played_rounds")
+    number = models.PositiveIntegerField()  # Game.round once the round is over
+    seed = models.BigIntegerField()
+    present_tributes = models.ManyToManyField(Tribute, related_name="+")
+    present_victors = models.ManyToManyField(PastVictor, related_name="+")
+
+    class Meta:
+        ordering = ["number"]
+        constraints = [models.UniqueConstraint(fields=["game", "number"], name="unique_played_round")]
 
 
 class Bet(models.Model):
