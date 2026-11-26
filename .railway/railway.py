@@ -15,7 +15,7 @@ credentials are references, filled in by Railway.
 from railway_sdk import bucket, define_railway, github, postgres, preserve, project, service, volume
 
 PROJECT = "the-yearly-games"
-REPOSITORY = "Spendrax/The-Yearly-Games"
+REPOSITORY = "MaxDude132/The-Yearly-Games"
 BRANCH = "main"
 # Where the photo bucket lives: sjc, iad, ams or sin. It cannot change once the bucket exists.
 BUCKET_REGION = "iad"

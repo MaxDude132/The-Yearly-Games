@@ -41,7 +41,7 @@ class RailwayConfigTests(SimpleTestCase):
         self.assertIn(self.resources["bucket.photos"]["config"]["region"], {"sjc", "iad", "ams", "sin"})
 
     def test_web_builds_the_dockerfile_from_the_main_branch(self):
-        source = {"type": "github", "repo": "Spendrax/The-Yearly-Games", "branch": "main"}
+        source = {"type": "github", "repo": "MaxDude132/The-Yearly-Games", "branch": "main"}
         self.assertEqual(self.web["source"], source)
         build = {"buildEnvironment": "V3", "builder": "DOCKERFILE", "dockerfilePath": "Dockerfile"}
         self.assertEqual(self.web["build"], build)
