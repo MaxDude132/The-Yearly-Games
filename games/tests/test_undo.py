@@ -1,4 +1,4 @@
-"""Undo: taking back the last answer, the round in progress, or the last finished round."""
+"""Undo (taking back the last answer, the round in progress, or the last round) and rehearsals."""
 
 from django.core.management import call_command
 from django.test import TestCase
@@ -84,5 +84,36 @@ class UndoTests(TestCase):
         self.play_round()
         self.assertIn("Undo", self.client.get("/").content.decode())
         self.client.post("/undo/")
+        self.game.refresh_from_db()
+        self.assertEqual(self.game.round, 0)
+
+
+class RehearsalTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        call_command("load_content", verbosity=0)
+
+    def setUp(self):
+        self.client.get("/")
+        self.game = Game.objects.get()
+
+    def test_a_rehearsal_skips_to_the_end_and_frees_the_phones_on_quit(self):
+        self.client.post("/roster/", setup_form(self.game, action="rehearse"))
+        self.game.refresh_from_db()
+        self.assertTrue(self.game.rehearsal)
+        self.game.tributes.filter(position=0).update(phone_token="abc")
+        self.assertIn("Rehearsal: nothing here counts", self.client.get("/").content.decode())
+        self.client.post("/skip/")
+        self.game.refresh_from_db()
+        self.assertIsNotNone(self.game.winner_id)
+        self.assertIn("data-recap", self.client.get("/").content.decode())
+        self.client.post("/quit/")
+        self.game.refresh_from_db()
+        self.assertFalse(self.game.rehearsal)
+        self.assertFalse(self.game.tributes.exclude(phone_token="").exists())
+
+    def test_skip_does_nothing_in_a_real_game(self):
+        self.client.post("/roster/", setup_form(self.game, action="start"))
+        self.client.post("/skip/")
         self.game.refresh_from_db()
         self.assertEqual(self.game.round, 0)

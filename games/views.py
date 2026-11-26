@@ -179,6 +179,7 @@ def _game_page(request, game):
             "recap": _recap(arena, translator, name_of, victor_name_of) if arena.winner else None,
             "confirm_quit": "confirm_quit" in request.GET,
             "can_undo": undo.can_undo(game),
+            "rehearsal": game.rehearsal,
             "join": _join(request, game),
             "live_url": reverse("state"),
             "version": game.version,
@@ -377,6 +378,8 @@ def roster(request, game):
         players.release(game, players.TRIBUTE, int(action[8:]))
     elif action == "start":
         services.start_game(game)
+    elif action == "rehearse":
+        services.start_game(game, rehearsal=True)
     return redirect("index")
 
 
@@ -403,6 +406,15 @@ def decision(request, game):
         elif choice.isdigit():
             services.answer_decision(game, int(position), int(choice))
     return _home_new()
+
+
+@require_POST
+@with_game
+def skip_to_the_end(request, game):
+    """Rehearsal only: plays the rest of the game at once, to see the recap."""
+    if game.status == Game.Status.PLAYING and game.rehearsal:
+        services.skip_to_the_end(game)
+    return redirect("index")
 
 
 @require_POST

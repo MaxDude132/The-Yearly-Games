@@ -5,6 +5,7 @@
       <div>
         {% include "games/_title.html" %}
         <span class="text-moss tabular-nums">{{ alive_count }} / {{ total }} {% translate "alive" %}</span>
+        {% if rehearsal %}<span class="ml-2 rounded-md border border-gold px-2 py-0.5 text-sm text-gold">🧪 {% translate "Rehearsal: nothing here counts" %}</span>{% endif %}
       </div>
       <div class="flex flex-wrap items-center gap-2.5">{% include "games/_join.html" with compact=True %}{% include "games/_language.html" %}</div>
     </header>
@@ -77,6 +78,7 @@
       {% else %}
       <form method="get" action="{% url 'index' %}"><button type="submit" class="btn" name="confirm_quit" value="1">{% translate "Quit" %}</button></form>
       {% endif %}
+      {% if rehearsal and not recap %}<form method="post" action="{% url 'skip' %}">{% csrf_token %}<button type="submit" class="btn">⏩ {% translate "Skip to the end" %}</button></form>{% endif %}
       {% if can_undo %}<form method="post" action="{% url 'undo' %}">{% csrf_token %}<button type="submit" class="btn">↶ {% translate "Undo" %}</button></form>{% endif %}
       <button type="button" class="btn hidden max-md:block" data-toggle-board data-board-label="{% translate 'Tributes' %}" data-story-label="{% translate 'Story' %}">{% translate "Tributes" %}</button>
       <form method="post" action="{% url 'next_round' %}" id="next-round">{% csrf_token %}

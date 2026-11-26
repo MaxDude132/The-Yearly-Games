@@ -85,6 +85,7 @@
         </fieldset>
         <div class="flex flex-wrap items-center gap-2.5">
           <button type="submit" class="btn" name="action" value="add">{% translate "Add a tribute" %}</button>
+          <button type="submit" class="btn" name="action" value="rehearse" {% if not can_start %}disabled{% endif %}>🧪 {% translate "Rehearsal" %}</button>
           <button type="submit" class="btn btn-main" name="action" value="start" {% if not can_start %}disabled{% endif %}>{% translate "Start the Games" %}</button>
         </div>
       </form>

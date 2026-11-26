@@ -355,3 +355,12 @@ msgstr "Déconnecter le téléphone"
 
 msgid "Undo"
 msgstr "Annuler"
+
+msgid "Rehearsal"
+msgstr "Répétition"
+
+msgid "Rehearsal: nothing here counts"
+msgstr "Répétition : rien ici ne compte"
+
+msgid "Skip to the end"
+msgstr "Aller à la fin"

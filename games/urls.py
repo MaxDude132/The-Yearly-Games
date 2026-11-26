@@ -9,6 +9,7 @@ urlpatterns = [
     path("decision/", views.decision, name="decision"),
     path("quit/", views.quit_game, name="quit"),
     path("undo/", views.undo_last, name="undo"),
+    path("skip/", views.skip_to_the_end, name="skip"),
     path("tributes/<int:position>/present/", views.set_present, name="present"),
     path("victors/<int:position>/present/", views.set_victor_present, name="victor_present"),
     path("state/", views.state, name="state"),

@@ -22,6 +22,7 @@ from games.engine.state import Victor as EngineVictor
 
 DEFAULT_TRIBUTE_COUNT = 24
 MIN_TRIBUTES = 2
+MAX_ROUNDS = 200  # skip_to_the_end stops here, in case a game never ends
 
 
 # ---------- content ----------
@@ -56,14 +57,26 @@ def get_game(session_key):
     return game
 
 
-def start_game(game):
+def start_game(game, rehearsal=False):
     """Leaves the setup screen. Returns False if there are too few tributes."""
     if game.tributes.count() < MIN_TRIBUTES:
         return False
     game.status = models.Game.Status.PLAYING
+    game.rehearsal = rehearsal
     game.first_new_entry = 0
-    game.save(update_fields=["status", "first_new_entry", "updated_at"])
+    game.save(update_fields=["status", "rehearsal", "first_new_entry", "updated_at"])
     return True
+
+
+def skip_to_the_end(game):
+    """Rehearsal: plays every remaining round, the dice answering every question."""
+    for _ in range(MAX_ROUNDS):
+        if game.winner_id:
+            return
+        if game.round_seed is None:
+            start_round(game)
+        while (decision := waiting_decision(game)) is not None:
+            answer_decision(game, current_answers(game).count(), secrets.randbelow(decision.option_count))
 
 
 @transaction.atomic
@@ -73,8 +86,12 @@ def reset_game(game):
     game.answers.all().delete()
     game.played_rounds.all().delete()
     game.bets.all().delete()
+    if game.rehearsal:  # game night starts with every seat free
+        game.tributes.update(phone_token="")
+        game.victors.update(phone_token="")
     game.status = models.Game.Status.SETUP
-    game.save(update_fields=["status", "updated_at"])
+    game.rehearsal = False
+    game.save(update_fields=["status", "rehearsal", "updated_at"])
 
 
 def clear_arena(game):

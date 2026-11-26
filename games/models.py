@@ -25,6 +25,8 @@ class Game(models.Model):
     session_key = models.CharField(max_length=40, unique=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.SETUP)
     voters = models.CharField(max_length=30, choices=Voters.choices, default=Voters.DEAD)
+    # A rehearsal: a test run before game night. Not kept in the hall of fame; quitting frees the phones.
+    rehearsal = models.BooleanField(default=False)
     # Fair play: nobody votes on a decision about their own tribute or their own alliance.
     no_conflict_votes = models.BooleanField(default=True)
     round = models.PositiveIntegerField(default=0)  # 1 = Bloodbath, 2 = Day 1, 3 = Night 1...
