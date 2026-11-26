@@ -11,7 +11,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
 
 from games import bets as bet_tools
-from games import players, services, views
+from games import phone_extras, players, services, views
 from games.engine.dice import Dice
 from games.engine.rounds import is_night_round
 from games.engine.state import Victor
@@ -114,9 +114,15 @@ def _playing_page(request, game, kind, row):
     context = _base(game, kind, row)
 
     if kind == players.TRIBUTE:
-        context["card"] = views._card(row, arena.tributes[row.position], arena, translator, names)
+        tribute = arena.tributes[row.position]
+        victor_names = {r.position: victor_display_name(r) for r in victor_rows}
+        context["card"] = views._card(row, tribute, arena, translator, names)
+        context["allies"] = phone_extras.allies(arena, tribute, names)
+        context["my_story"] = phone_extras.my_story(arena, tribute, translator, names, victor_names)
     elif row.edition:
         context["victor_games"] = _("%(nth)s Games") % {"nth": ordinal(row.edition, current_language())}
+
+    context["powers"] = phone_extras.powers(game, kind, row, arena)
 
     if players.decides(decision, kind, row):
         context["decision"] = views._decision_context(

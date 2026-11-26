@@ -372,7 +372,37 @@ msgid "The fallen"
 msgstr "Les tributs tombés"
 
 msgid "Open the TV screen"
-msgstr "Ouvrir l’écran télé"
+msgstr "Ouvrir l'écran télé"
 
 msgid "%(name)s decides…"
 msgstr "%(name)s choisit…"
+
+msgid "Allies"
+msgstr "Alliés"
+
+msgid "What you can do"
+msgstr "Ce que tu peux faire"
+
+msgid "What you can still do"
+msgstr "Ce que tu peux encore faire"
+
+msgid "When it is your turn, the question shows up here."
+msgstr "Quand c'est ton tour, la question apparaît ici."
+
+msgid "Your story so far"
+msgstr "Ton histoire jusqu'ici"
+
+msgid "Send sponsor gifts to the tributes you choose."
+msgstr "Envoyer des cadeaux de sponsor aux tributs de ton choix."
+
+msgid "Vote for tributes who are not in the room when they face a big decision."
+msgstr "Voter pour les tributs absents quand ils font face à une grande décision."
+
+msgid "Choose the disasters that hit the arena, and shield a tribute from them."
+msgstr "Choisir les désastres qui frappent l'arène, et en protéger un tribut."
+
+msgid "Put a bounty on a living tribute."
+msgstr "Mettre une prime sur la tête d'un tribut vivant."
+
+msgid "Bet on who falls first each night."
+msgstr "Parier sur qui tombe en premier chaque nuit."

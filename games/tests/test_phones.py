@@ -36,7 +36,7 @@ class PhoneTests(TestCase):
         return phone
 
     def assert_answered(self, answers_before):
-        """The answer was taken: saved, or it ended the round (which clears the round's answers)."""
+        """The answer was taken: saved, or it ended the round."""
         self.game.refresh_from_db()
         if self.game.round_seed is not None:
             self.assertEqual(Answer.objects.count(), answers_before + 1)
@@ -217,3 +217,36 @@ class PhoneTests(TestCase):
         self.assertIn("has bet", self.client.get("/").content.decode())
         self.client.post("/round/next/", {"victor-bet-0": ""})  # the host's form keeps the phone's bet
         self.assertTrue(self.game.bets.filter(victor__name="Alex").exists())
+
+    # ---------- more about me ----------
+
+    def test_my_story_shows_the_lines_about_my_tribute(self):
+        phone = self.phone(position=0, name="Gaël")
+        self.client.post("/roster/", setup_form(self.game, lambda position: False, action="start"))
+        self.client.post("/round/next/")  # the Bloodbath: everyone gets a line
+        page = phone.get(f"/play/{self.code}/").content.decode()
+        story = page[page.index("data-my-story") :]
+        self.assertIn("<b>Gaël</b>", story[: story.index("</div>")])
+        self.assertNotIn("data-powers", page)  # alive: the questions say what to do
+
+    def test_the_fallen_see_what_they_can_still_do(self):
+        phone = self.phone(position=0, name="Gaël")
+        self.client.post("/roster/", setup_form(self.game, lambda position: position == 0, action="start"))
+        self.game.tributes.filter(position=0).update(alive=False, died_on_day=1)
+        page = phone.get(f"/play/{self.code}/").content.decode()
+        self.assertIn("What you can still do", page)
+        self.assertIn("Put a bounty on a living tribute.", page)
+        self.assertIn("Send sponsor gifts", page)  # no past victor in the room: the fallen send gifts
+        self.assertIn("Vote for tributes who are not in the room", page)  # the default voters: the dead
+
+    def test_a_past_victor_sees_what_they_can_do(self):
+        self.client.post("/roster/", setup_form(self.game, action="add-victor"))
+        phone = self.phone(kind="victor", position=0, name="Alex")
+        self.client.post(
+            "/roster/",
+            setup_form(self.game, lambda position: False, action="start", **{"victor-here-0": "on"}),
+        )
+        page = phone.get(f"/play/{self.code}/").content.decode()
+        self.assertIn("What you can do", page)
+        self.assertIn("Send sponsor gifts", page)
+        self.assertNotIn("Vote for tributes", page)  # the default voters are the dead, not past victors
