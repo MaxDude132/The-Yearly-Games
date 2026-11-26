@@ -3,7 +3,7 @@
 {% block body %}
     <header class="flex items-center justify-between gap-4 border-b border-line px-4 py-3">
       {% translate "The Yearly Games" as title %}{% include "games/_title.html" %}
-      <div class="flex flex-wrap items-center gap-2.5">{% include "games/_language.html" %}</div>
+      <div class="flex flex-wrap items-center gap-2.5"><a class="btn" href="{% url 'hall' %}">🏆 {% translate "Hall of fame" %}</a>{% include "games/_language.html" %}</div>
     </header>
     {# relative keeps the hidden photo inputs inside the list, so the page can't scroll past Start. #}
     <main class="relative mx-auto flex w-full max-w-176 flex-col gap-4 overflow-y-auto p-4">

@@ -244,3 +244,48 @@ class Bet(models.Model):
     def player(self):
         """The tribute or past victor who placed the bet."""
         return self.bettor or self.victor
+
+
+# ---------- history: finished Games, for the hall of fame and the shared recap ----------
+
+
+class PastGame(models.Model):
+    """A finished Games (never a rehearsal). Names are copied, so later roster changes keep history."""
+
+    game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name="past_games")
+    edition = models.PositiveIntegerField()  # which Yearly Games: 1 = the first
+    finished_on = models.DateField(auto_now_add=True)
+    days = models.PositiveIntegerField()
+    share_code = models.CharField(max_length=12, unique=True)  # the shared recap: /recap/<share_code>/
+
+    class Meta:
+        ordering = ["edition", "pk"]
+
+    @property
+    def winner(self):
+        return self.tributes.first()
+
+
+class PastTribute(models.Model):
+    """A tribute's result in a finished Games. place 1 is the victor, 2 the last to fall..."""
+
+    past_game = models.ForeignKey(PastGame, on_delete=models.CASCADE, related_name="tributes")
+    place = models.PositiveIntegerField()
+    name = models.CharField(max_length=30)
+    district = models.PositiveIntegerField()
+    kills = models.PositiveIntegerField()
+    died_on_day = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["place"]
+
+
+class PastBetScore(models.Model):
+    """A player's bet points in a finished Games (tributes' players and past victors)."""
+
+    past_game = models.ForeignKey(PastGame, on_delete=models.CASCADE, related_name="bet_scores")
+    name = models.CharField(max_length=30)
+    points = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ["-points", "pk"]

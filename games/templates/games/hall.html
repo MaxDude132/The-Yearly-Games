@@ -1,0 +1,29 @@
+{% extends "games/base.html" %}
+{% load i18n %}
+{% block body %}
+    <header class="flex items-center justify-between gap-4 border-b border-line px-4 py-3">
+      {% translate "Hall of fame" as title %}{% include "games/_title.html" %}
+      <div class="flex flex-wrap items-center gap-2.5"><a class="btn" href="{% url 'index' %}">{% translate "Back" %}</a>{% include "games/_language.html" %}</div>
+    </header>
+    <main class="mx-auto flex w-full max-w-160 flex-col gap-5 overflow-y-auto p-4">
+      <section class="flex flex-col gap-1.5" data-victors>
+        <h2 class="m-0 text-sm tracking-widest text-gold uppercase">{% translate "Victors" %}</h2>
+        {% for victor in victors %}<div class="flex gap-3 rounded-md border border-line bg-panel px-3 py-2">
+          <span class="w-12 text-gold tabular-nums">#{{ victor.edition }}</span>
+          <span class="flex-1 font-semibold wrap-anywhere">{{ victor.name }}</span>
+          {% if victor.kills is not None %}<span class="text-moss">{% blocktranslate count kills=victor.kills %}{{ kills }} kill{% plural %}{{ kills }} kills{% endblocktranslate %}</span>{% endif %}
+          {% if victor.year %}<span class="text-moss tabular-nums">{{ victor.year }}</span>{% endif %}
+          {% if victor.share_code %}<a class="text-gold" href="{% url 'shared_recap' victor.share_code %}">{% translate "Recap" %}</a>{% endif %}
+        </div>{% empty %}<p class="m-0 text-moss">{% translate "No Games finished yet. The first victor will show up here." %}</p>{% endfor %}
+      </section>
+
+      {% if most_wins %}<section><h2 class="m-0 mb-1 text-sm tracking-widest text-ember uppercase">{% translate "Most wins" %}</h2>
+        <ol class="m-0 pl-5">{% for name, wins in most_wins %}<li>{{ name }}: {{ wins }}</li>{% endfor %}</ol></section>{% endif %}
+      {% if most_kills_in_one_games %}<section><h2 class="m-0 mb-1 text-sm tracking-widest text-ember uppercase">{% translate "Most kills in one Games" %}</h2>
+        <ol class="m-0 pl-5">{% for row in most_kills_in_one_games %}<li>{{ row.name }}: {{ row.kills }} <span class="text-moss">(#{{ row.past_game__edition }})</span></li>{% endfor %}</ol></section>{% endif %}
+      {% if most_kills_ever %}<section><h2 class="m-0 mb-1 text-sm tracking-widest text-ember uppercase">{% translate "Most kills ever" %}</h2>
+        <ol class="m-0 pl-5">{% for row in most_kills_ever %}<li>{{ row.name }}: {{ row.total }}</li>{% endfor %}</ol></section>{% endif %}
+      {% if best_bettors_ever %}<section><h2 class="m-0 mb-1 text-sm tracking-widest text-ember uppercase">{% translate "Best bettors ever" %}</h2>
+        <ol class="m-0 pl-5">{% for row in best_bettors_ever %}<li>{{ row.name }}: {{ row.total }} {% translate "points" %}</li>{% endfor %}</ol></section>{% endif %}
+    </main>
+{% endblock %}

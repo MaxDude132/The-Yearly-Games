@@ -11,7 +11,7 @@ import secrets
 from django.db import transaction
 
 from content import models as content
-from games import models
+from games import history, models
 from games.bets import score_bets
 from games.engine.catalogue import ArenaEvent, Catalogue, Item, Line
 from games.engine.dice import Dice
@@ -247,6 +247,8 @@ def save_arena(game, arena):
     game.round_seed = None
     game.save()
     score_bets(game, arena, rows)
+    if arena.winner and not game.rehearsal:
+        history.record(game, arena, rows)
 
 
 # ---------- playing a round ----------

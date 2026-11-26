@@ -1,6 +1,6 @@
 from django.urls import path
 
-from games import phone_views, tv_views, views
+from games import history_views, phone_views, tv_views, views
 
 urlpatterns = [
     path("", views.index, name="index"),
@@ -10,6 +10,8 @@ urlpatterns = [
     path("quit/", views.quit_game, name="quit"),
     path("undo/", views.undo_last, name="undo"),
     path("skip/", views.skip_to_the_end, name="skip"),
+    path("hall/", history_views.hall_of_fame, name="hall"),
+    path("recap/<str:code>/", history_views.shared_recap, name="shared_recap"),
     path("tributes/<int:position>/present/", views.set_present, name="present"),
     path("victors/<int:position>/present/", views.set_victor_present, name="victor_present"),
     path("state/", views.state, name="state"),

@@ -1,0 +1,28 @@
+{% extends "games/base.html" %}
+{% load i18n %}
+{% block body %}
+    <header class="flex items-center justify-between gap-4 border-b border-line px-4 py-3">
+      {% blocktranslate with nth=past.edition asvar title %}The Yearly Games #{{ nth }}{% endblocktranslate %}{% include "games/_title.html" %}
+      <div class="flex flex-wrap items-center gap-2.5">{% include "games/_language.html" %}</div>
+    </header>
+    <main class="mx-auto flex w-full max-w-160 flex-col gap-4 overflow-y-auto p-4">
+      <p class="m-0 rounded-md border-2 border-gold p-4 font-display text-[clamp(1.6rem,6vw,2.6rem)] leading-tight font-black text-gold uppercase">
+        {% blocktranslate with name=winner.name kills=winner.kills %}{{ name }} wins with {{ kills }} kills.{% endblocktranslate %}</p>
+      <p class="m-0 text-moss">{{ past.finished_on|date:"DATE_FORMAT" }} · {% blocktranslate count days=past.days %}{{ days }} day{% plural %}{{ days }} days{% endblocktranslate %}</p>
+
+      <h2 class="m-0 text-sm tracking-widest text-ember uppercase">{% translate "Final standings" %}</h2>
+      <ol class="m-0 flex list-none flex-col gap-1 p-0" data-standings>
+        {% for tribute in past.tributes.all %}<li class="flex gap-3 rounded-md border border-line bg-panel px-3 py-1.5 {% if forloop.first %}border-gold text-gold{% endif %}">
+          <span class="w-8 text-moss tabular-nums">{{ tribute.place }}.</span>
+          <span class="flex-1 font-semibold wrap-anywhere">{{ tribute.name }}</span>
+          <span class="text-moss">D{{ tribute.district }}</span>
+          <span class="w-20 text-right text-moss tabular-nums">{% blocktranslate count kills=tribute.kills %}{{ kills }} kill{% plural %}{{ kills }} kills{% endblocktranslate %}</span>
+        </li>{% endfor %}
+      </ol>
+
+      {% if past.bet_scores.all %}
+      <h2 class="m-0 text-sm tracking-widest text-ember uppercase">{% translate "Best guesses" %}</h2>
+      <ol class="m-0 pl-5">{% for score in past.bet_scores.all %}<li>{{ score.name }}: {{ score.points }} {% translate "points" %}</li>{% endfor %}</ol>
+      {% endif %}
+    </main>
+{% endblock %}

@@ -52,6 +52,8 @@ def _replay_without_last_round(game):
     if [played.number for played in rounds] != list(range(1, game.round + 1)):
         raise CannotReplay
     undone = rounds.pop()
+    if game.winner_id and not game.rehearsal:  # taking back the final round: the Games is not over any more
+        game.past_games.order_by("pk").last().delete()
     here_now = list(game.tributes.filter(present=True)), list(game.victors.filter(present=True))
 
     services.clear_arena(game)

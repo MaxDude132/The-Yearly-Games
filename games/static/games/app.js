@@ -146,3 +146,20 @@ if (sky && cannonsOn() && !sessionStorage.getItem(skyKey)) {
   // shortcut: a browser may block sound until the page is touched; then the shots wait for the first tap.
   else document.addEventListener('pointerdown', () => audio.resume().then(fire), { once: true });
 }
+
+// "Share the recap": the phone's share sheet, or else the link is copied.
+document.addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-share-url]');
+  if (!button) return;
+  const url = button.dataset.shareUrl;
+  if (navigator.share) {
+    try { await navigator.share({ url }); } catch { /* the person closed the share sheet */ }
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    button.textContent = button.dataset.copiedLabel;
+  } catch {
+    prompt('', url); // no clipboard (plain http): show the link to copy by hand
+  }
+});

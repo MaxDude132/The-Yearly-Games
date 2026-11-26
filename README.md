@@ -29,6 +29,7 @@ What makes each game different:
 - **The fallen:** after each round, the faces of the fallen appear one by one under the cannon line. Turn on "Cannon sound" for one boom per fallen tribute (made by the browser, no sound file).
 - **TV screen:** "Open the TV screen" in the "Join on your phone" pop-up opens /tv/<join code>/ for a TV or laptop: the story in big letters, the faces of the fallen, whose turn it is, the recap and the QR code. Nothing to press there.
 - **On your phone:** your living allies, the last lines of the story about your tribute, and for the fallen and past victors a "What you can still do" list that follows the game's settings.
+- **History:** every finished Games (not rehearsals) is kept with everyone's place, kills and bet points. "Share the recap" gives a link anyone can open (/recap/<code>/). The hall of fame (/hall/) lists every victor by edition, with the past victors you entered, plus records: most wins, most kills in one Games, most kills ever, best bettors ever.
 - **Recap:** the end of the game lists the victor's kills, the deadliest tribute, the turning points (betrayals, mercy, bounties, revenge) and the best guessers.
 - **Final duel:** the last two each pick a tactic (charge, ambush, wait). It works like rock-paper-scissors: the better tactic gives an edge, but luck decides.
 - **Save:** the game is saved on the server after every round and belongs to your browser (a session cookie). Close the page and pick up later.

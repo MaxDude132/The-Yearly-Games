@@ -12,7 +12,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
 
 from games import bets as bet_tools
-from games import players, services, undo
+from games import history, players, services, undo
 from games import roster as roster_tools
 from games.engine.combat import strength_bonus
 from games.engine.dice import Dice
@@ -181,6 +181,7 @@ def _game_page(request, game, template="games/game.html", **extra):
             "bets": _bet_form(game, arena, decision, rows, names, victor_rows),
             "scores": _scores(game, names, victor_names),
             "recap": _recap(arena, translator, name_of, victor_name_of) if arena.winner else None,
+            "share_url": history.share_url(request, game),
             "confirm_quit": "confirm_quit" in request.GET,
             "can_undo": undo.can_undo(game),
             "rehearsal": game.rehearsal,

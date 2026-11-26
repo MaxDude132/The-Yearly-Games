@@ -406,3 +406,46 @@ msgstr "Mettre une prime sur la tête d'un tribut vivant."
 
 msgid "Bet on who falls first each night."
 msgstr "Parier sur qui tombe en premier chaque nuit."
+
+msgid "The Yearly Games #%(nth)s"
+msgstr "Les Jeux annuels n° %(nth)s"
+
+msgid "%(days)s day"
+msgid_plural "%(days)s days"
+msgstr[0] "%(days)s jour"
+msgstr[1] "%(days)s jours"
+
+msgid "Final standings"
+msgstr "Classement final"
+
+msgid "%(kills)s kill"
+msgid_plural "%(kills)s kills"
+msgstr[0] "%(kills)s victime"
+msgstr[1] "%(kills)s victimes"
+
+msgid "Hall of fame"
+msgstr "Panthéon"
+
+msgid "Victors"
+msgstr "Vainqueurs"
+
+msgid "No Games finished yet. The first victor will show up here."
+msgstr "Aucuns Jeux terminés pour l'instant. Le premier vainqueur apparaîtra ici."
+
+msgid "Most wins"
+msgstr "Le plus de victoires"
+
+msgid "Most kills in one Games"
+msgstr "Le plus de victimes en un seul Jeux"
+
+msgid "Most kills ever"
+msgstr "Le plus de victimes de tous les temps"
+
+msgid "Best bettors ever"
+msgstr "Meilleurs parieurs de tous les temps"
+
+msgid "Link copied"
+msgstr "Lien copié"
+
+msgid "Share the recap"
+msgstr "Partager le récapitulatif"

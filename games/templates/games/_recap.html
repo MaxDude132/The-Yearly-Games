@@ -6,4 +6,8 @@
   <ul class="m-0 flex list-none flex-col gap-1 p-0 [&_b]:font-semibold">{% for moment in recap.moments %}<li>{{ moment }}</li>{% endfor %}</ul>{% endif %}
   {% if scores %}<h3 class="m-0 text-sm tracking-widest text-ember uppercase">{% translate "Best guesses" %}</h3>
   <ol class="m-0 pl-5">{% for score in scores %}<li>{{ score.name }}: {{ score.points }} {% translate "points" %}</li>{% endfor %}</ol>{% endif %}
+  {% if share_url and not tv %}<div class="flex flex-wrap gap-2">
+    <button type="button" class="btn" data-share-url="{{ share_url }}" data-copied-label="{% translate 'Link copied' %}">🔗 {% translate "Share the recap" %}</button>
+    <a class="btn" href="{% url 'hall' %}">🏆 {% translate "Hall of fame" %}</a>
+  </div>{% endif %}
 </div>
