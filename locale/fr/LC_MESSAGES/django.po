@@ -364,3 +364,9 @@ msgstr "Répétition : rien ici ne compte"
 
 msgid "Skip to the end"
 msgstr "Aller à la fin"
+
+msgid "Cannon sound"
+msgstr "Son du canon"
+
+msgid "The fallen"
+msgstr "Les tributs tombés"

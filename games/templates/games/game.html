@@ -14,7 +14,7 @@
       <section class="overflow-y-auto p-4 after:block after:h-[70vh] after:content-[''] max-md:group-[.show-board]:hidden" id="story" data-first-new="{{ first_new }}">
         {% for entry in entries %}{% if entry.heading %}<h2 id="entry-{{ entry.index }}" class="{{ entry.classes }}">{{ entry.html }}</h2>
         {% else %}<p id="entry-{{ entry.index }}" class="{{ entry.classes }} [&_b]:font-semibold">{{ entry.html }}</p>
-        {% endif %}{% empty %}<p class="mb-2 max-w-[65ch] border-l-3 border-line py-0.5 pl-3">{% translate "The tributes rise into the arena." %}</p>{% endfor %}
+        {% endif %}{% if entry.fallen %}{% include "games/_fallen.html" with fallen=entry.fallen %}{% endif %}{% empty %}<p class="mb-2 max-w-[65ch] border-l-3 border-line py-0.5 pl-3">{% translate "The tributes rise into the arena." %}</p>{% endfor %}
         {% if recap %}
         <div class="mt-6 flex max-w-[65ch] flex-col gap-2 rounded-md border border-gold p-4" data-recap>
           <h2 class="m-0 font-display text-2xl leading-none font-bold tracking-[.06em] text-gold uppercase">{% translate "Recap" %}</h2>
@@ -79,6 +79,7 @@
       <form method="get" action="{% url 'index' %}"><button type="submit" class="btn" name="confirm_quit" value="1">{% translate "Quit" %}</button></form>
       {% endif %}
       {% if rehearsal and not recap %}<form method="post" action="{% url 'skip' %}">{% csrf_token %}<button type="submit" class="btn">⏩ {% translate "Skip to the end" %}</button></form>{% endif %}
+      <button type="button" class="btn aria-pressed:border-gold aria-pressed:text-gold" data-cannon-toggle aria-pressed="false">💥 {% translate "Cannon sound" %}</button>
       {% if can_undo %}<form method="post" action="{% url 'undo' %}">{% csrf_token %}<button type="submit" class="btn">↶ {% translate "Undo" %}</button></form>{% endif %}
       <button type="button" class="btn hidden max-md:block" data-toggle-board data-board-label="{% translate 'Tributes' %}" data-story-label="{% translate 'Story' %}">{% translate "Tributes" %}</button>
       <form method="post" action="{% url 'next_round' %}" id="next-round">{% csrf_token %}

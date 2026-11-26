@@ -131,6 +131,7 @@ def _game_page(request, game):
             "classes": story_classes(entry.style, index >= first_new),
             "heading": entry.style.startswith("heading"),
             "html": translator.story(entry, name_of, victor_name_of=victor_name_of),
+            "fallen": _fallen(entry, rows, names) if index >= first_new else [],
         }
         for index, entry in enumerate(arena.log)
     ]
@@ -153,6 +154,7 @@ def _game_page(request, game):
             if arena.round
             else _("The Yearly Games"),
             "is_night": night,
+            "round": arena.round,
             "alive_count": len(arena.living()),
             "total": len(arena.tributes),
             "entries": entries,
@@ -185,6 +187,25 @@ def _game_page(request, game):
             "version": game.version,
         },
     )
+
+
+FALLEN_STAGGER = 0.8  # seconds between two faces in the sky (and two cannon shots, see app.js)
+
+
+def _fallen(entry, rows, names):
+    """The faces shown in the sky under a round's cannon line, one after the other."""
+    if entry.style != "cannon":
+        return []
+    return [
+        {
+            "tribute": rows[position],
+            "letters": _letters(rows[position]),
+            "name": names[position],
+            "district": rows[position].district,
+            "delay": f"{order * FALLEN_STAGGER:.1f}",
+        }
+        for order, position in enumerate(entry.names)
+    ]
 
 
 def _goal_labels():  # a function, so the labels follow the viewer's language

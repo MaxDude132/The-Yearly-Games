@@ -26,6 +26,7 @@ What makes each game different:
 - **Bets:** before each night, everyone in the room (tributes and past victors) may guess who falls first: 3 points if right, 1 point if that tribute falls later in the night.
 - **Undo:** the host can take back the last answer, or the whole last round. The game is played again from the gong with the same dice and answers, minus that round.
 - **Rehearsal:** a test run before game night (phones, QR code, TV). "Skip to the end" plays the rest at once to show the recap. Quitting frees every phone seat.
+- **The fallen:** after each round, the faces of the fallen appear one by one under the cannon line. Turn on "Cannon sound" for one boom per fallen tribute (made by the browser, no sound file).
 - **Recap:** the end of the game lists the victor's kills, the deadliest tribute, the turning points (betrayals, mercy, bounties, revenge) and the best guessers.
 - **Final duel:** the last two each pick a tactic (charge, ambush, wait). It works like rock-paper-scissors: the better tactic gives an edge, but luck decides.
 - **Save:** the game is saved on the server after every round and belongs to your browser (a session cookie). Close the page and pick up later.

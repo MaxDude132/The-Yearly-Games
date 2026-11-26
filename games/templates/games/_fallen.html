@@ -1,0 +1,7 @@
+{% load i18n %}{# The faces of a round's fallen, as in the night sky. app.js fires one cannon per face (data-fallen). #}
+<div class="mb-4 flex max-w-[65ch] flex-wrap gap-3 pl-3" data-fallen data-round="{{ round }}" aria-label="{% translate 'The fallen' %}">
+  {% for face in fallen %}<figure class="m-0 flex w-18 flex-col items-center gap-1 text-center text-xs text-moss opacity-85 grayscale motion-safe:animate-fallen-in" style="animation-delay: {{ face.delay }}s">
+    {% include "games/_avatar.html" with tribute=face.tribute letters=face.letters big=True %}
+    <figcaption class="wrap-anywhere">{{ face.name }} · D{{ face.district }}</figcaption>
+  </figure>{% endfor %}
+</div>

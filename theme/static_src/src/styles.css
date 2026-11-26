@@ -28,12 +28,17 @@
 
   --animate-appear: appear 0.35s ease-out both; /* new story lines */
   --animate-decision-in: decision-in 0.22s ease-out both; /* each new pop-up slides in */
+  --animate-fallen-in: fallen-in 1.2s ease-out both; /* the fallen appear in the sky, then fade to grey */
 
   @keyframes appear {
     from { opacity: 0.2; transform: translateY(4px); }
   }
   @keyframes decision-in {
     from { opacity: 0; transform: translateY(14px); }
+  }
+  @keyframes fallen-in {
+    from { opacity: 0; transform: scale(1.5); filter: grayscale(0) brightness(1.6); }
+    to { opacity: 0.85; filter: grayscale(1); }
   }
 }
 

@@ -94,3 +94,55 @@ if (liveUrl) {
     if (event.target.closest('[data-live-reload]')) reload();
   });
 }
+
+// The cannon: one boom per fallen face in the sky, once per round, if this browser turned the sound on.
+// The boom is made by the browser (no sound file): a low thump and a burst of rumble.
+const CANNON_STAGGER = 800; // milliseconds between two shots, as FALLEN_STAGGER in views.py
+const cannonsOn = () => { try { return localStorage.getItem('cannons') === 'on'; } catch { return false; } };
+
+const boom = (audio, delay) => {
+  const start = audio.currentTime + delay / 1000;
+  const thump = audio.createOscillator();
+  const thumpVolume = audio.createGain();
+  thump.frequency.setValueAtTime(90, start);
+  thump.frequency.exponentialRampToValueAtTime(30, start + 0.8);
+  thumpVolume.gain.setValueAtTime(0.9, start);
+  thumpVolume.gain.exponentialRampToValueAtTime(0.001, start + 1.2);
+  thump.connect(thumpVolume).connect(audio.destination);
+  thump.start(start);
+  thump.stop(start + 1.2);
+
+  const noise = audio.createBuffer(1, audio.sampleRate, audio.sampleRate);
+  noise.getChannelData(0).forEach((_, i, samples) => { samples[i] = Math.random() * 2 - 1; });
+  const rumble = audio.createBufferSource();
+  const muffle = audio.createBiquadFilter();
+  const rumbleVolume = audio.createGain();
+  rumble.buffer = noise;
+  muffle.type = 'lowpass';
+  muffle.frequency.value = 400;
+  rumbleVolume.gain.setValueAtTime(0.6, start);
+  rumbleVolume.gain.exponentialRampToValueAtTime(0.001, start + 1);
+  rumble.connect(muffle).connect(rumbleVolume).connect(audio.destination);
+  rumble.start(start);
+};
+
+const cannonToggle = document.querySelector('[data-cannon-toggle]');
+if (cannonToggle) {
+  cannonToggle.setAttribute('aria-pressed', cannonsOn());
+  cannonToggle.addEventListener('click', () => {
+    try { localStorage.setItem('cannons', cannonsOn() ? 'off' : 'on'); } catch { return; }
+    cannonToggle.setAttribute('aria-pressed', cannonsOn());
+    if (cannonsOn()) boom(new AudioContext(), 0); // one test shot
+  });
+}
+
+const sky = document.querySelector('[data-fallen]');
+const skyKey = sky && `cannons-${sky.dataset.round}`;
+if (sky && cannonsOn() && !sessionStorage.getItem(skyKey)) {
+  sessionStorage.setItem(skyKey, 'fired'); // the page reloads often: fire once per round
+  const audio = new AudioContext();
+  const fire = () => sky.querySelectorAll('figure').forEach((_, order) => boom(audio, order * CANNON_STAGGER));
+  if (audio.state === 'running') fire();
+  // shortcut: a browser may block sound until the page is touched; then the shots wait for the first tap.
+  else document.addEventListener('pointerdown', () => audio.resume().then(fire), { once: true });
+}
